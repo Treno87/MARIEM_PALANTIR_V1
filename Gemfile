@@ -26,7 +26,7 @@ gem "jbuilder"
 gem "devise", "~> 4.9"
 
 # Pagination
-gem "pagy", "~> 9.0"
+gem "pagy", "~> 43.2"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]

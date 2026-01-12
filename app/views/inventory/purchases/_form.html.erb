@@ -1,0 +1,23 @@
+<%= form_with model: [:inventory, @purchase], class: "space-y-5" do |f| %>
+  <% if @purchase.errors.any? %>
+    <div class="alert alert-error">
+      <%= @purchase.errors.full_messages.first %>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <label class="label">공급업체</label>
+      <%= f.select :vendor_id, @vendors.map { |v| [v.name, v.id] }, { prompt: "공급업체 선택" }, class: "select" %>
+    </div>
+    <div>
+      <label class="label">입고일</label>
+      <%= f.datetime_local_field :purchased_at, class: "input" %>
+    </div>
+  </div>
+
+  <div class="flex gap-3 pt-2">
+    <%= f.submit class: "btn btn-primary flex-1" %>
+    <%= link_to "취소", inventory_purchases_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

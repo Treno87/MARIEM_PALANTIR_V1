@@ -1,0 +1,46 @@
+<% content_for(:page_title) { "공급업체 관리" } %>
+
+<div class="flex items-center justify-between mb-6">
+  <p class="text-sm text-zinc-500">총 <%= @vendors.count %>개</p>
+  <%= link_to new_masters_vendor_path, class: "btn btn-primary" do %>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    새 공급업체
+  <% end %>
+</div>
+
+<div class="card">
+  <% if @vendors.any? %>
+    <div class="divide-y divide-zinc-100">
+      <% @vendors.each do |vendor| %>
+        <div class="px-6 py-4 flex items-center justify-between hover:bg-zinc-50 transition-colors">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-zinc-900"><%= vendor.name %></p>
+              <p class="text-xs text-zinc-500"><%= vendor.phone %></p>
+            </div>
+          </div>
+          <div class="flex items-center gap-1">
+            <%= link_to edit_masters_vendor_path(vendor), class: "btn btn-ghost btn-sm" do %>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            <% end %>
+            <%= button_to masters_vendor_path(vendor), method: :delete, data: { turbo_confirm: "정말 삭제하시겠습니까?" }, class: "btn btn-ghost btn-sm text-zinc-400 hover:text-red-500" do %>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="px-6 py-16 text-center">
+      <svg class="w-12 h-12 text-zinc-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+      <p class="text-sm text-zinc-500 mb-4">등록된 공급업체가 없습니다</p>
+      <%= link_to new_masters_vendor_path, class: "btn btn-primary" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        첫 공급업체 등록
+      <% end %>
+    </div>
+  <% end %>
+</div>

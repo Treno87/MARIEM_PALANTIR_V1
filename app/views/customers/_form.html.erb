@@ -1,0 +1,27 @@
+<%= form_with model: @customer, class: "space-y-5" do |f| %>
+  <% if @customer.errors.any? %>
+    <div class="alert alert-error">
+      <%= @customer.errors.full_messages.first %>
+    </div>
+  <% end %>
+
+  <div>
+    <label class="label">이름</label>
+    <%= f.text_field :name, class: "input", placeholder: "홍길동" %>
+  </div>
+
+  <div>
+    <label class="label">연락처</label>
+    <%= f.text_field :phone, class: "input", placeholder: "010-1234-5678" %>
+  </div>
+
+  <div>
+    <label class="label">메모</label>
+    <%= f.text_area :memo, rows: 3, class: "textarea", placeholder: "특이사항을 입력하세요" %>
+  </div>
+
+  <div class="flex gap-3 pt-2">
+    <%= f.submit class: "btn btn-primary flex-1" %>
+    <%= link_to "취소", customers_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

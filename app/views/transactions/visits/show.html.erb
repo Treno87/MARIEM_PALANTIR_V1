@@ -1,0 +1,110 @@
+<% content_for(:page_title) { "거래 상세" } %>
+
+<div class="max-w-6xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-4">
+      <div class="avatar avatar-lg"><%= @visit.customer.name[0] %></div>
+      <div>
+        <h2 class="text-lg font-semibold text-zinc-900"><%= @visit.customer.name %></h2>
+        <p class="text-sm text-zinc-500"><%= @visit.visited_at.strftime("%Y.%m.%d %H:%M") %></p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <% if @visit.finalized? %>
+        <span class="badge badge-success">확정</span>
+      <% else %>
+        <span class="badge badge-warning">임시</span>
+      <% end %>
+      <% if @visit.draft? %>
+        <%= link_to edit_transactions_visit_path(@visit), class: "btn btn-secondary" do %>
+          편집
+        <% end %>
+      <% end %>
+      <%= link_to transactions_visits_path, class: "btn btn-ghost" do %>
+        목록
+      <% end %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Line Items -->
+    <div class="lg:col-span-2">
+      <div class="card">
+        <div class="px-6 py-4 border-b border-zinc-100">
+          <h3 class="card-title">시술 / 상품</h3>
+        </div>
+
+        <% if @sale_line_items.any? %>
+          <div class="divide-y divide-zinc-100">
+            <% @sale_line_items.each do |item| %>
+              <div class="px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center <%= item.service? ? 'bg-blue-50' : 'bg-violet-50' %>">
+                    <% if item.service? %>
+                      <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243z"/></svg>
+                    <% else %>
+                      <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    <% end %>
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium text-zinc-900"><%= item.item_name %></p>
+                    <p class="text-xs text-zinc-500"><%= item.staff&.name %> · <%= item.qty %>개</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <% if item.discount_amount > 0 %>
+                    <p class="text-xs text-zinc-400 line-through"><%= number_to_currency(item.list_unit_price * item.qty, unit: "₩", precision: 0) %></p>
+                  <% end %>
+                  <p class="text-sm font-semibold text-zinc-900"><%= number_to_currency(item.net_total, unit: "₩", precision: 0) %></p>
+                </div>
+              </div>
+            <% end %>
+          </div>
+          <div class="px-6 py-4 border-t border-zinc-100 flex justify-between">
+            <span class="text-sm font-medium text-zinc-900">합계</span>
+            <span class="text-lg font-bold text-zinc-900"><%= number_to_currency(@visit.total_amount, unit: "₩", precision: 0) %></span>
+          </div>
+        <% else %>
+          <div class="px-6 py-12 text-center">
+            <p class="text-sm text-zinc-500">등록된 항목이 없습니다</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Payments -->
+    <div>
+      <div class="card">
+        <div class="px-6 py-4 border-b border-zinc-100">
+          <h3 class="card-title">결제 내역</h3>
+        </div>
+
+        <% if @payments.any? %>
+          <div class="divide-y divide-zinc-100">
+            <% @payments.each do |payment| %>
+              <div class="px-6 py-3 flex items-center justify-between">
+                <span class="text-sm text-zinc-600">
+                  <%= { "card" => "카드", "cash" => "현금", "bank" => "계좌이체", "prepaid" => "정액권", "points" => "포인트" }[payment.method] %>
+                </span>
+                <span class="text-sm font-medium text-zinc-900"><%= number_to_currency(payment.amount, unit: "₩", precision: 0) %></span>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+
+        <div class="px-6 py-4 border-t border-zinc-100">
+          <div class="flex justify-between mb-2">
+            <span class="text-sm text-zinc-500">총 결제</span>
+            <span class="text-sm font-medium text-zinc-900"><%= number_to_currency(@visit.paid_amount, unit: "₩", precision: 0) %></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-sm font-medium text-zinc-900">잔액</span>
+            <span class="text-lg font-bold <%= @visit.remaining_amount > 0 ? 'text-red-600' : 'text-emerald-600' %>">
+              <%= number_to_currency(@visit.remaining_amount, unit: "₩", precision: 0) %>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

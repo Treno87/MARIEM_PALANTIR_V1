@@ -1,0 +1,56 @@
+<% content_for(:page_title) { "서비스 관리" } %>
+
+<div class="flex items-center justify-between mb-6">
+  <p class="text-sm text-zinc-500">총 <%= @services.count %>개</p>
+  <%= link_to new_masters_service_path, class: "btn btn-primary" do %>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    새 서비스
+  <% end %>
+</div>
+
+<div class="card">
+  <% if @services.any? %>
+    <div class="divide-y divide-zinc-100">
+      <% @services.each do |service| %>
+        <div class="px-6 py-4 flex items-center justify-between hover:bg-zinc-50 transition-colors">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243z"/></svg>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-zinc-900"><%= service.name %></p>
+              <p class="text-xs text-zinc-500"><%= service.service_category&.name || '미분류' %></p>
+            </div>
+          </div>
+          <div class="flex items-center gap-6">
+            <div class="text-right">
+              <p class="text-sm font-semibold text-zinc-900"><%= number_to_currency(service.list_price, unit: "₩", precision: 0) %></p>
+              <% if service.active? %>
+                <span class="badge badge-success">활성</span>
+              <% else %>
+                <span class="badge badge-error">비활성</span>
+              <% end %>
+            </div>
+            <div class="flex items-center gap-1">
+              <%= link_to edit_masters_service_path(service), class: "btn btn-ghost btn-sm" do %>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              <% end %>
+              <%= button_to masters_service_path(service), method: :delete, data: { turbo_confirm: "정말 삭제하시겠습니까?" }, class: "btn btn-ghost btn-sm text-zinc-400 hover:text-red-500" do %>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="px-6 py-16 text-center">
+      <svg class="w-12 h-12 text-zinc-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243z"/></svg>
+      <p class="text-sm text-zinc-500 mb-4">등록된 서비스가 없습니다</p>
+      <%= link_to new_masters_service_path, class: "btn btn-primary" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        첫 서비스 등록
+      <% end %>
+    </div>
+  <% end %>
+</div>

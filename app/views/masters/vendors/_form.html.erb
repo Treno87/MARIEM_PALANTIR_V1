@@ -1,0 +1,22 @@
+<%= form_with model: [:masters, @vendor], class: "space-y-5" do |f| %>
+  <% if @vendor.errors.any? %>
+    <div class="alert alert-error">
+      <%= @vendor.errors.full_messages.first %>
+    </div>
+  <% end %>
+
+  <div>
+    <label class="label">업체명</label>
+    <%= f.text_field :name, class: "input", placeholder: "예: ABC 화장품" %>
+  </div>
+
+  <div>
+    <label class="label">연락처</label>
+    <%= f.text_field :phone, class: "input", placeholder: "010-1234-5678" %>
+  </div>
+
+  <div class="flex gap-3 pt-2">
+    <%= f.submit class: "btn btn-primary flex-1" %>
+    <%= link_to "취소", masters_vendors_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

@@ -1,0 +1,38 @@
+<% content_for(:page_title) { "새 거래" } %>
+
+<div class="max-w-md mx-auto">
+  <div class="card">
+    <div class="px-6 py-5 border-b border-zinc-100">
+      <h2 class="card-title">새 거래 시작</h2>
+      <p class="text-sm text-zinc-500 mt-1">고객과 방문 시간을 선택해주세요</p>
+    </div>
+
+    <div class="card-body">
+      <%= form_with model: @visit, url: transactions_visits_path, class: "space-y-5" do |f| %>
+        <% if @visit.errors.any? %>
+          <div class="alert alert-error">
+            <%= @visit.errors.full_messages.first %>
+          </div>
+        <% end %>
+
+        <div>
+          <label class="label">고객</label>
+          <%= f.select :customer_id, @customers.map { |c| ["#{c.name} (#{c.phone})", c.id] }, { prompt: "고객 선택" }, class: "select" %>
+          <p class="mt-1.5 text-xs text-zinc-500">
+            <%= link_to "새 고객 등록", new_customer_path, class: "text-zinc-700 underline" %>
+          </p>
+        </div>
+
+        <div>
+          <label class="label">방문 일시</label>
+          <%= f.datetime_local_field :visited_at, class: "input" %>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <%= f.submit "거래 시작", class: "btn btn-primary flex-1" %>
+          <%= link_to "취소", transactions_visits_path, class: "btn btn-secondary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

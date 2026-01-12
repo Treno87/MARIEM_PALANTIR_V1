@@ -1,0 +1,37 @@
+<div class="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <h1 class="text-2xl font-bold text-zinc-900">Mariem</h1>
+      <p class="text-sm text-zinc-500 mt-1">미용실 관리 시스템</p>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <%= form_for(resource, as: resource_name, url: session_path(resource_name), html: { class: "space-y-5" }) do |f| %>
+          <div>
+            <label class="label">이메일</label>
+            <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "input", placeholder: "email@example.com" %>
+          </div>
+
+          <div>
+            <label class="label">비밀번호</label>
+            <%= f.password_field :password, autocomplete: "current-password", class: "input" %>
+          </div>
+
+          <% if devise_mapping.rememberable? %>
+            <div class="flex items-center gap-2">
+              <%= f.check_box :remember_me, class: "w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-0" %>
+              <label class="text-sm text-zinc-600">로그인 상태 유지</label>
+            </div>
+          <% end %>
+
+          <%= f.submit "로그인", class: "btn btn-primary w-full" %>
+        <% end %>
+      </div>
+    </div>
+
+    <p class="text-center text-xs text-zinc-400 mt-6">
+      &copy; 2024 Mariem. All rights reserved.
+    </p>
+  </div>
+</div>

@@ -1,0 +1,450 @@
+<% content_for(:page_title) { "거래 입력" } %>
+
+<div class="max-w-7xl mx-auto px-4">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-4">
+      <div class="avatar avatar-lg"><%= @visit.customer.name[0] %></div>
+      <div>
+        <h2 class="text-lg font-semibold text-zinc-900"><%= @visit.customer.name %></h2>
+        <p class="text-sm text-zinc-500"><%= @visit.visited_at.strftime("%Y.%m.%d %H:%M") %></p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <% if @visit.fully_paid? && @visit.draft? %>
+        <%= button_to finalize_transactions_visit_path(@visit), method: :post, class: "btn btn-success" do %>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          거래 확정
+        <% end %>
+      <% end %>
+      <%= link_to customers_path, class: "btn btn-ghost btn-sm" do %>
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- 1. 매출 입력 폼 -->
+  <div class="card mb-4">
+    <div class="px-5 py-3 border-b border-zinc-100">
+      <h3 class="card-title text-sm">매출 입력</h3>
+    </div>
+
+    <%= form_with url: transactions_visit_sale_line_items_path(@visit), scope: :sale_line_item, class: "p-4 space-y-3", html: { autocomplete: "off", id: "sale_form" } do |f| %>
+      <!-- 1행: 시술/상품 선택 -->
+      <div class="flex items-end gap-2">
+        <div class="w-16">
+          <label class="text-xs text-zinc-500 mb-1 block">분류</label>
+          <select name="sale_line_item[item_type]" id="new_item_type" class="select select-sm w-full" onchange="handleItemTypeChange(this)">
+            <option value="service">시술</option>
+            <option value="product">상품</option>
+          </select>
+        </div>
+        <div class="w-24" id="category_wrapper">
+          <label class="text-xs text-zinc-500 mb-1 block">메뉴</label>
+          <select id="new_category" class="select select-sm w-full" onchange="handleCategoryChange(this)">
+            <option value="">선택</option>
+            <% @service_categories.each do |cat| %>
+              <option value="<%= cat.id %>"><%= cat.name %></option>
+            <% end %>
+          </select>
+        </div>
+        <div class="flex-1">
+          <label class="text-xs text-zinc-500 mb-1 block">상세메뉴</label>
+          <select name="sale_line_item[service_id]" id="new_service" class="select select-sm w-full" onchange="updateCalculations()">
+            <option value="">메뉴를 먼저 선택</option>
+          </select>
+          <select name="sale_line_item[product_id]" id="new_product" class="select select-sm w-full hidden" onchange="updateCalculations()">
+            <option value="">선택</option>
+            <% @products.each do |p| %>
+              <option value="<%= p.id %>" data-price="<%= p.default_retail_unit_price || 0 %>"><%= p.name %> (₩<%= number_with_delimiter(p.default_retail_unit_price || 0) %>)</option>
+            <% end %>
+          </select>
+        </div>
+      </div>
+
+      <!-- 2행: 단가, 수량, 이벤트, 할인율, 할인액, 정액금, 결제액 -->
+      <div class="flex items-end gap-2">
+        <div class="w-24">
+          <label class="text-xs text-zinc-500 mb-1 block">단가</label>
+          <input type="text" id="new_unit_price" class="input input-sm w-full text-right bg-zinc-50" readonly>
+        </div>
+        <div class="w-14">
+          <label class="text-xs text-zinc-500 mb-1 block">수량</label>
+          <%= f.number_field :qty, value: 1, min: 1, class: "input input-sm w-full text-center", id: "new_qty", oninput: "updateCalculations()" %>
+        </div>
+        <div class="w-36">
+          <label class="text-xs text-zinc-500 mb-1 block">이벤트</label>
+          <%= f.select :applied_pricing_rule_id, @pricing_rules.map { |r| [r.name, r.id, { 'data-type' => r.rule_type, 'data-value' => r.value }] }, { prompt: "선택" }, class: "select select-sm w-full", id: "new_event", onchange: "handleEventChange(this)" %>
+        </div>
+        <div class="w-16">
+          <label class="text-xs text-zinc-500 mb-1 block">할인율%</label>
+          <%= f.number_field :discount_rate, placeholder: "0", class: "input input-sm w-full text-right", id: "new_discount_rate", step: "0.01", oninput: "updateCalculations()" %>
+        </div>
+        <div class="w-20">
+          <label class="text-xs text-zinc-500 mb-1 block">할인액</label>
+          <input type="text" id="new_discount_display" class="input input-sm w-full text-right bg-zinc-50 text-red-600" readonly>
+          <%= f.hidden_field :discount_amount, id: "new_discount_amount" %>
+        </div>
+        <div class="w-20">
+          <label class="text-xs text-zinc-500 mb-1 block">정액금</label>
+          <%= f.number_field :prepaid_used, placeholder: "0", class: "input input-sm w-full text-right", id: "new_prepaid", oninput: "updateCalculations()" %>
+        </div>
+        <div class="w-24">
+          <label class="text-xs text-zinc-500 mb-1 block">결제액</label>
+          <input type="text" id="new_final_price" class="input input-sm w-full text-right bg-zinc-50 font-bold" readonly>
+        </div>
+        <div>
+          <%= f.submit "추가", class: "btn btn-primary btn-sm" %>
+        </div>
+      </div>
+      <%= f.hidden_field :staff_id, value: "" %>
+      <%= f.hidden_field :points_earned, value: 0 %>
+    <% end %>
+  </div>
+
+  <!-- 2. 결제 내역 (리스트 + 할인 + 결제수단) -->
+  <div class="card">
+    <% if @sale_line_items.any? %>
+      <!-- 매출 리스트 -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-zinc-50 border-b border-zinc-200">
+            <tr>
+              <th class="px-4 py-3 text-left font-medium text-zinc-600">시술/상품</th>
+              <th class="px-4 py-3 text-right font-medium text-zinc-600">단가</th>
+              <th class="px-4 py-3 text-center font-medium text-zinc-600">수량</th>
+              <th class="px-4 py-3 text-right font-medium text-zinc-600">할인</th>
+              <th class="px-4 py-3 text-right font-medium text-zinc-600">정액금</th>
+              <th class="px-4 py-3 text-right font-medium text-zinc-600">결제액</th>
+              <th class="px-4 py-3 w-10"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-zinc-100">
+            <% @sale_line_items.each do |item| %>
+              <tr class="hover:bg-zinc-50">
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-2">
+                    <span class="badge badge-sm <%= item.service? ? 'badge-info' : 'badge-secondary' %>">
+                      <%= item.service? ? '시술' : '상품' %>
+                    </span>
+                    <span class="font-medium text-zinc-900"><%= item.item_name %></span>
+                    <% if item.staff.present? %>
+                      <span class="text-xs text-zinc-400">(<%= item.staff.name %>)</span>
+                    <% end %>
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-right text-zinc-600"><%= number_to_currency(item.list_unit_price, unit: "₩", precision: 0) %></td>
+                <td class="px-4 py-3 text-center text-zinc-600"><%= item.qty %></td>
+                <td class="px-4 py-3 text-right text-red-500">
+                  <% discount = item.discount_amount.to_i * item.qty %>
+                  <%= discount > 0 ? number_to_currency(discount, unit: "-₩", precision: 0) : '-' %>
+                </td>
+                <td class="px-4 py-3 text-right text-orange-500">
+                  <%= item.prepaid_used.to_i > 0 ? number_to_currency(item.prepaid_used, unit: "-₩", precision: 0) : '-' %>
+                </td>
+                <td class="px-4 py-3 text-right font-semibold text-zinc-900"><%= number_to_currency(item.net_total, unit: "₩", precision: 0) %></td>
+                <td class="px-4 py-3 text-center">
+                  <%= button_to transactions_visit_sale_line_item_path(@visit, item), method: :delete, class: "text-zinc-400 hover:text-red-500" do %>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 합계 -->
+      <% list_total = @sale_line_items.sum { |i| i.list_unit_price * i.qty } %>
+      <% discount_total = @sale_line_items.sum { |i| i.discount_amount.to_i * i.qty } %>
+      <% prepaid_total = @sale_line_items.sum { |i| i.prepaid_used.to_i } %>
+      <% net_total = @sale_line_items.sum(&:net_total) %>
+      <div class="px-4 py-3 bg-zinc-50 border-t border-zinc-200">
+        <div class="flex justify-end items-center gap-6 text-sm">
+          <div>
+            <span class="text-zinc-500">원금</span>
+            <span class="font-medium text-zinc-900 ml-2"><%= number_to_currency(list_total, unit: "₩", precision: 0) %></span>
+          </div>
+          <% if discount_total > 0 %>
+            <div>
+              <span class="text-zinc-500">할인</span>
+              <span class="font-medium text-red-500 ml-2"><%= number_to_currency(discount_total, unit: "-₩", precision: 0) %></span>
+            </div>
+          <% end %>
+          <% if prepaid_total > 0 %>
+            <div>
+              <span class="text-zinc-500">정액금</span>
+              <span class="font-medium text-orange-500 ml-2"><%= number_to_currency(prepaid_total, unit: "-₩", precision: 0) %></span>
+            </div>
+          <% end %>
+          <div>
+            <span class="text-zinc-500">결제액</span>
+            <span class="font-bold text-lg text-zinc-900 ml-2"><%= number_to_currency(net_total, unit: "₩", precision: 0) %></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 결제수단 입력 -->
+      <% total_list = @sale_line_items.sum { |i| i.list_unit_price * i.qty } %>
+      <% total_discount = @sale_line_items.sum { |i| i.discount_amount.to_i * i.qty } %>
+      <% total_prepaid = @sale_line_items.sum { |i| i.prepaid_used.to_i } %>
+      <% total_net = @sale_line_items.sum(&:net_total) %>
+      <div class="px-4 py-3 border-t border-zinc-200">
+        <form id="payment_form" class="flex items-center gap-2">
+          <span class="text-xs font-semibold text-zinc-700 w-20">결제입력</span>
+          <div class="flex-1 flex items-center gap-2">
+            <div class="w-20">
+              <label class="text-xs text-blue-600 mb-1 block font-medium">카드</label>
+              <input type="number" name="payments[card]" class="input input-sm w-full text-right" placeholder="0">
+            </div>
+            <div class="w-20">
+              <label class="text-xs text-green-600 mb-1 block font-medium">현금</label>
+              <input type="number" name="payments[cash]" class="input input-sm w-full text-right" placeholder="0">
+            </div>
+            <div class="w-20">
+              <label class="text-xs text-purple-600 mb-1 block font-medium">통장</label>
+              <input type="number" name="payments[bank]" class="input input-sm w-full text-right" placeholder="0">
+            </div>
+            <div class="w-20">
+              <label class="text-xs text-red-600 mb-1 block font-medium">외상</label>
+              <input type="number" name="payments[credit]" class="input input-sm w-full text-right" placeholder="0">
+            </div>
+            <div class="w-20">
+              <label class="text-xs text-cyan-600 mb-1 block font-medium">Pay</label>
+              <input type="number" name="payments[pay]" class="input input-sm w-full text-right" placeholder="0">
+            </div>
+            <div class="w-20">
+              <label class="text-xs text-zinc-600 mb-1 block font-medium">기타</label>
+              <input type="number" name="payments[other]" class="input input-sm w-full text-right" placeholder="0">
+            </div>
+            <div class="w-20">
+              <label class="text-xs text-yellow-600 mb-1 block font-medium">포인트</label>
+              <input type="number" name="payments[points]" class="input input-sm w-full text-right" placeholder="0">
+            </div>
+            <!-- 금액 요약 -->
+            <div class="ml-4 flex items-center gap-4 text-sm">
+              <div class="text-zinc-500">총원금 <span class="font-medium text-zinc-900"><%= number_to_currency(total_list, unit: "₩", precision: 0) %></span></div>
+              <div class="text-red-500">총할인액 <span class="font-medium"><%= number_to_currency(total_discount + total_prepaid, unit: "-₩", precision: 0) %></span></div>
+              <div class="text-zinc-700">실결제금 <span class="font-bold text-lg text-zinc-900"><%= number_to_currency(total_net, unit: "₩", precision: 0) %></span></div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-success btn-sm">결제</button>
+        </form>
+      </div>
+
+      <!-- 5. 결제구분 (태그 형식) -->
+      <% if @payments.any? %>
+        <% payment_totals = @payments.group_by(&:method).transform_values { |ps| ps.sum(&:amount) } %>
+        <div class="px-4 py-3 border-t border-zinc-200">
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-semibold text-zinc-700">결제구분</span>
+            <% if (payment_totals['card'] || 0) > 0 %>
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:9999px;background:#dbeafe;color:#1e40af;font-size:14px;font-weight:500;">
+                카드 <strong><%= number_to_currency(payment_totals['card'], unit: "₩", precision: 0) %></strong>
+              </span>
+            <% end %>
+            <% if (payment_totals['cash'] || 0) > 0 %>
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:9999px;background:#dcfce7;color:#166534;font-size:14px;font-weight:500;">
+                현금 <strong><%= number_to_currency(payment_totals['cash'], unit: "₩", precision: 0) %></strong>
+              </span>
+            <% end %>
+            <% if (payment_totals['bank'] || 0) > 0 %>
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:9999px;background:#f3e8ff;color:#7c3aed;font-size:14px;font-weight:500;">
+                통장 <strong><%= number_to_currency(payment_totals['bank'], unit: "₩", precision: 0) %></strong>
+              </span>
+            <% end %>
+            <% if (payment_totals['credit'] || 0) > 0 %>
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:9999px;background:#fee2e2;color:#dc2626;font-size:14px;font-weight:500;">
+                외상 <strong><%= number_to_currency(payment_totals['credit'], unit: "₩", precision: 0) %></strong>
+              </span>
+            <% end %>
+            <% if (payment_totals['pay'] || 0) > 0 %>
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:9999px;background:#cffafe;color:#0891b2;font-size:14px;font-weight:500;">
+                Pay <strong><%= number_to_currency(payment_totals['pay'], unit: "₩", precision: 0) %></strong>
+              </span>
+            <% end %>
+            <% if (payment_totals['other'] || 0) > 0 %>
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:9999px;background:#f4f4f5;color:#3f3f46;font-size:14px;font-weight:500;">
+                기타 <strong><%= number_to_currency(payment_totals['other'], unit: "₩", precision: 0) %></strong>
+              </span>
+            <% end %>
+            <% if (payment_totals['prepaid'] || 0) > 0 %>
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:9999px;background:#ffedd5;color:#c2410c;font-size:14px;font-weight:500;">
+                정액금 <strong><%= number_to_currency(payment_totals['prepaid'], unit: "₩", precision: 0) %></strong>
+              </span>
+            <% end %>
+            <% if (payment_totals['points'] || 0) > 0 %>
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:9999px;background:#fef9c3;color:#a16207;font-size:14px;font-weight:500;">
+                포인트 <strong><%= number_to_currency(payment_totals['points'], unit: "₩", precision: 0) %></strong>
+              </span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+    <% else %>
+      <div class="px-5 py-16 text-center">
+        <svg class="w-12 h-12 text-zinc-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <p class="text-sm text-zinc-500">등록된 항목이 없습니다</p>
+        <p class="text-xs text-zinc-400 mt-1">위에서 시술 또는 상품을 선택하여 추가하세요</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  // 데이터
+  var servicesData = <%= raw @services.map { |s| { id: s.id, category_id: s.service_category_id, name: s.name, price: s.list_price || 0 } }.to_json %>;
+  var subtotal = <%= @sale_line_items.sum(&:net_total) %>;
+
+  // 분류(시술/상품) 변경
+  function handleItemTypeChange(el) {
+    var categoryWrapper = document.getElementById('category_wrapper');
+    var serviceSelect = document.getElementById('new_service');
+    var productSelect = document.getElementById('new_product');
+    var categorySelect = document.getElementById('new_category');
+
+    if (el.value === 'service') {
+      categoryWrapper.style.display = '';
+      serviceSelect.classList.remove('hidden');
+      productSelect.classList.add('hidden');
+      productSelect.value = '';
+    } else {
+      categoryWrapper.style.display = 'none';
+      serviceSelect.classList.add('hidden');
+      productSelect.classList.remove('hidden');
+      serviceSelect.value = '';
+      categorySelect.value = '';
+    }
+    updateCalculations();
+  }
+
+  // 메뉴(카테고리) 변경 -> 상세메뉴 필터링
+  function handleCategoryChange(el) {
+    var serviceSelect = document.getElementById('new_service');
+    var categoryId = parseInt(el.value, 10);
+
+    serviceSelect.innerHTML = '<option value="">선택하세요</option>';
+
+    if (categoryId) {
+      var filtered = servicesData.filter(function(s) { return s.category_id === categoryId; });
+      filtered.forEach(function(service) {
+        var option = document.createElement('option');
+        option.value = service.id;
+        option.setAttribute('data-price', service.price);
+        option.textContent = service.name + ' (₩' + Number(service.price).toLocaleString() + ')';
+        serviceSelect.appendChild(option);
+      });
+    }
+    updateCalculations();
+  }
+
+  // 가격 계산
+  function updateCalculations() {
+    var itemTypeSelect = document.getElementById('new_item_type');
+    var serviceSelect = document.getElementById('new_service');
+    var productSelect = document.getElementById('new_product');
+    var unitPriceInput = document.getElementById('new_unit_price');
+    var qtyInput = document.getElementById('new_qty');
+    var discountRateInput = document.getElementById('new_discount_rate');
+    var discountDisplay = document.getElementById('new_discount_display');
+    var discountAmountInput = document.getElementById('new_discount_amount');
+    var prepaidInput = document.getElementById('new_prepaid');
+    var finalPriceInput = document.getElementById('new_final_price');
+
+    var unitPrice = 0;
+
+    if (itemTypeSelect.value === 'service') {
+      var selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+      if (selectedOption && selectedOption.getAttribute('data-price')) {
+        unitPrice = parseInt(selectedOption.getAttribute('data-price'), 10) || 0;
+      }
+    } else {
+      var selectedOption = productSelect.options[productSelect.selectedIndex];
+      if (selectedOption && selectedOption.getAttribute('data-price')) {
+        unitPrice = parseInt(selectedOption.getAttribute('data-price'), 10) || 0;
+      }
+    }
+
+    unitPriceInput.value = unitPrice > 0 ? '₩' + unitPrice.toLocaleString() : '';
+
+    var qty = parseInt(qtyInput.value, 10) || 1;
+    var itemSubtotal = unitPrice * qty;
+
+    // 할인액 계산
+    var discountRate = parseFloat(discountRateInput.value) || 0;
+    var discountAmount = Math.round(unitPrice * discountRate / 100);
+    discountAmountInput.value = discountAmount;
+    discountDisplay.value = discountAmount > 0 ? '-₩' + discountAmount.toLocaleString() : '';
+
+    // 정액금
+    var prepaid = parseInt(prepaidInput.value, 10) || 0;
+
+    // 결제액 = (단가 - 할인액) * 수량 - 정액금
+    var netUnitPrice = unitPrice - discountAmount;
+    var finalPrice = (netUnitPrice * qty) - prepaid;
+    finalPrice = Math.max(0, finalPrice);
+    finalPriceInput.value = finalPrice > 0 ? '₩' + finalPrice.toLocaleString() : '';
+  }
+
+  // 이벤트(할인규칙) 선택 시
+  function handleEventChange(el) {
+    var opt = el.options[el.selectedIndex];
+    var discountRateInput = document.getElementById('new_discount_rate');
+
+    if (opt && opt.value) {
+      var ruleType = opt.getAttribute('data-type');
+      var ruleValue = parseFloat(opt.getAttribute('data-value')) || 0;
+
+      if (ruleType === 'percent') {
+        discountRateInput.value = ruleValue;
+      } else {
+        // 금액 할인의 경우 - 단가에서 직접 차감
+        discountRateInput.value = '';
+        var unitPriceInput = document.getElementById('new_unit_price');
+        var unitPriceText = unitPriceInput.value.replace(/[^\d]/g, '');
+        var unitPrice = parseInt(unitPriceText, 10) || 0;
+        if (unitPrice > 0) {
+          var rate = (ruleValue / unitPrice) * 100;
+          discountRateInput.value = rate.toFixed(2);
+        }
+      }
+    } else {
+      discountRateInput.value = '';
+    }
+    updateCalculations();
+  }
+
+  // 매출 폼 제출
+  document.getElementById('sale_form').onsubmit = function(e) {
+    // 기본 제출 허용 (서버에서 처리)
+  };
+
+  // 결제 폼 제출
+  var paymentForm = document.getElementById('payment_form');
+  if (paymentForm) {
+    paymentForm.onsubmit = async function(e) {
+      e.preventDefault();
+      var formData = new FormData(this);
+      var csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+      var methods = ['card', 'cash', 'bank', 'credit', 'pay', 'other', 'points'];
+      for (var i = 0; i < methods.length; i++) {
+        var method = methods[i];
+        var amount = parseInt(formData.get('payments[' + method + ']')) || 0;
+        if (amount > 0) {
+          var paymentData = new FormData();
+          paymentData.append('payment[method]', method);
+          paymentData.append('payment[amount]', amount);
+          paymentData.append('authenticity_token', csrfToken);
+          try {
+            await fetch('<%= transactions_visit_payments_path(@visit) %>', { method: 'POST', body: paymentData });
+          } catch (err) {
+            console.error(err);
+          }
+        }
+      }
+      window.location.reload();
+    };
+  }
+</script>

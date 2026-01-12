@@ -1,0 +1,32 @@
+<%= form_with model: [:masters, @service], class: "space-y-5" do |f| %>
+  <% if @service.errors.any? %>
+    <div class="alert alert-error">
+      <%= @service.errors.full_messages.first %>
+    </div>
+  <% end %>
+
+  <div>
+    <label class="label">카테고리</label>
+    <%= f.select :service_category_id, @categories.map { |c| [c.name, c.id] }, { prompt: "카테고리 선택" }, class: "select" %>
+  </div>
+
+  <div>
+    <label class="label">서비스명</label>
+    <%= f.text_field :name, class: "input", placeholder: "예: 커트" %>
+  </div>
+
+  <div>
+    <label class="label">가격</label>
+    <%= f.number_field :list_price, class: "input", placeholder: "0" %>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <%= f.check_box :active, class: "w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-0" %>
+    <label class="text-sm text-zinc-600">활성화</label>
+  </div>
+
+  <div class="flex gap-3 pt-2">
+    <%= f.submit class: "btn btn-primary flex-1" %>
+    <%= link_to "취소", masters_services_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

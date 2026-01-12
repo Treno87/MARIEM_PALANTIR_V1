@@ -1,0 +1,27 @@
+<%= form_with model: [:masters, @staff_member], class: "space-y-5" do |f| %>
+  <% if @staff_member.errors.any? %>
+    <div class="alert alert-error">
+      <%= @staff_member.errors.full_messages.first %>
+    </div>
+  <% end %>
+
+  <div>
+    <label class="label">이름</label>
+    <%= f.text_field :name, class: "input", placeholder: "홍길동" %>
+  </div>
+
+  <div>
+    <label class="label">직책</label>
+    <%= f.text_field :role_title, class: "input", placeholder: "예: 디자이너" %>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <%= f.check_box :active, class: "w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-0" %>
+    <label class="text-sm text-zinc-600">재직중</label>
+  </div>
+
+  <div class="flex gap-3 pt-2">
+    <%= f.submit class: "btn btn-primary flex-1" %>
+    <%= link_to "취소", masters_staff_members_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

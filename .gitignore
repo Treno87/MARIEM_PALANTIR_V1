@@ -1,0 +1,57 @@
+# Ruby / Rails
+*.gem
+*.rbc
+/.config
+/coverage/
+/InstalledFiles
+/pkg/
+/spec/reports/
+/test/tmp/
+/test/version_tmp/
+/tmp/
+
+# Environment
+.env
+.env.local
+.env.*.local
+/.bundle
+/vendor/bundle
+
+# Logs
+/log/*
+!/log/.keep
+
+# Storage
+/storage/*
+!/storage/.keep
+
+# Assets
+/public/assets
+/public/packs
+/public/packs-test
+/app/assets/builds/*
+!/app/assets/builds/.keep
+
+# Node
+/node_modules
+/yarn-error.log
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Database
+/db/*.sqlite3
+/db/*.sqlite3-*
+
+# Master key
+/config/master.key
+/config/credentials/*.key
+
+# Bootsnap cache
+/tmp/cache/bootsnap*

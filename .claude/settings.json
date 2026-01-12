@@ -1,0 +1,21 @@
+{
+	"hooks": {
+		"PostToolUse": [],
+		"Notification": [],
+		"Stop": []
+	},
+	"permissions": {
+		"allow": [
+			"Read(*)",
+			"Write(./*)",
+			"Bash(bundle:*)",
+			"Bash(rails:*)",
+			"Bash(rake:*)",
+			"Bash(rspec:*)",
+			"Bash(git:*)",
+			"Bash(rubocop:*)"
+		],
+		"deny": ["Write(~/*)", "Bash(rm -rf *)"]
+	},
+	"enabledPlugins": {}
+}

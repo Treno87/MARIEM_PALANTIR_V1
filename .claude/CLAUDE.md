@@ -1,0 +1,57 @@
+# Project Guidelines
+
+## Core Principles
+
+- **TDD**: 테스트 먼저 작성 (@tdd.md 참조)
+- **Clean Code**: @clean-code.md 참조
+- **Tidying**: 리팩토링은 별도 커밋으로 분리
+
+## Tech Stack
+
+- Runtime: Ruby 3.x
+- Framework: Ruby on Rails 8.x
+- Database: PostgreSQL
+- Authentication: Devise
+- CSS: Tailwind CSS
+- Test: RSpec
+
+## Commands
+
+- `/beck`: Kent Beck의 4원칙으로 코드 리뷰 (제안만)
+- `/refactor`: Kent Beck의 4원칙으로 즉시 리팩토링 실행
+- `/tidy`: 코드 정리 후 즉시 커밋 (기능 변경 없음)
+- `/tcr`: Test && Commit || Revert 실행
+- `/verify`: 테스트 실행 (실패해도 revert 안함)
+
+## Rails Commands
+
+```bash
+# 서버 실행
+rails server
+
+# 콘솔
+rails console
+
+# 마이그레이션
+rails db:migrate
+
+# 테스트
+bundle exec rspec
+bundle exec rspec spec/models/visit_spec.rb      # 단일 파일
+bundle exec rspec spec/models/visit_spec.rb:42   # 특정 라인
+```
+
+## Rules
+
+1. **한국어로 응답**
+2. **변경 전 반드시 설명**
+3. **커밋 메시지는 명확하게**
+4. **불필요한 파일 생성 금지**
+
+## Workflow
+
+1. 요구사항 분석
+2. 테스트 작성 (TDD)
+3. 구현
+4. 리팩토링 (별도 커밋)
+5. 문서화 (필요시)

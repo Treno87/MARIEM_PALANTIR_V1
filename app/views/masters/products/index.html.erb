@@ -1,0 +1,52 @@
+<% content_for(:page_title) { "상품 관리" } %>
+
+<div class="flex items-center justify-between mb-6">
+  <p class="text-sm text-zinc-500">총 <%= @products.count %>개</p>
+  <%= link_to new_masters_product_path, class: "btn btn-primary" do %>
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    새 상품
+  <% end %>
+</div>
+
+<div class="card">
+  <% if @products.any? %>
+    <div class="divide-y divide-zinc-100">
+      <% @products.each do |product| %>
+        <div class="px-6 py-4 flex items-center justify-between hover:bg-zinc-50 transition-colors">
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-zinc-900"><%= product.name %></p>
+              <p class="text-xs text-zinc-500"><%= product.vendor&.name || '공급업체 없음' %></p>
+            </div>
+          </div>
+          <div class="flex items-center gap-6">
+            <div class="text-right">
+              <p class="text-sm font-semibold text-zinc-900"><%= number_to_currency(product.default_retail_unit_price || 0, unit: "₩", precision: 0) %></p>
+              <span class="badge badge-info"><%= { "retail" => "판매", "consumable" => "소모품", "both" => "판매+소모" }[product.kind] %></span>
+            </div>
+            <div class="flex items-center gap-1">
+              <%= link_to edit_masters_product_path(product), class: "btn btn-ghost btn-sm" do %>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              <% end %>
+              <%= button_to masters_product_path(product), method: :delete, data: { turbo_confirm: "정말 삭제하시겠습니까?" }, class: "btn btn-ghost btn-sm text-zinc-400 hover:text-red-500" do %>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="px-6 py-16 text-center">
+      <svg class="w-12 h-12 text-zinc-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      <p class="text-sm text-zinc-500 mb-4">등록된 상품이 없습니다</p>
+      <%= link_to new_masters_product_path, class: "btn btn-primary" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        첫 상품 등록
+      <% end %>
+    </div>
+  <% end %>
+</div>

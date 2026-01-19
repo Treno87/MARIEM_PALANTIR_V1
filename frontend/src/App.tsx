@@ -6,6 +6,7 @@ import ServicesPage from "./components/catalog/ServicesPage";
 import CustomersPage from "./components/customers/CustomersPage";
 import LandingPage from "./components/landing/LandingPage";
 import AppLayout from "./components/layout/AppLayout";
+import ReportsPage from "./components/reports/ReportsPage";
 import SalePage from "./components/sale/SalePage";
 import SalesListPage from "./components/sales/SalesListPage";
 import StaffPage from "./components/staff/StaffPage";
@@ -33,7 +34,7 @@ function App() {
 									{/* Placeholder routes */}
 									<Route path="/dashboard" element={<PlaceholderPage title="대시보드" />} />
 									<Route path="/sales" element={<SalesListPage />} />
-									<Route path="/reports" element={<PlaceholderPage title="리포트" />} />
+									<Route path="/reports" element={<ReportsPage />} />
 									<Route path="/customers" element={<CustomersPage />} />
 									<Route path="/settings" element={<PlaceholderPage title="설정" />} />
 								</Route>

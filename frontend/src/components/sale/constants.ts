@@ -309,9 +309,14 @@ export const discountEvents: DiscountEvent[] = [
 export const itemPaymentMethods = [
 	{ id: "card", label: "카드", color: "#0073ea" },
 	{ id: "cash", label: "현금", color: "#00c875" },
-	{ id: "transfer", label: "이체", color: "#fdab3d" },
+	{ id: "transfer", label: "계좌이체", color: "#fdab3d" },
 	{ id: "npay", label: "Npay", color: "#1ec800" },
 	{ id: "stored_value", label: "정액권", color: "#a25ddc" },
 	{ id: "membership", label: "정기권", color: "#e2445c" },
 	{ id: "other", label: "기타", color: "#6b7280" },
 ] as const;
+
+// 결제수단 ID → 한글 라벨 매핑 (itemPaymentMethods에서 파생)
+export const PAYMENT_METHOD_LABELS: Record<string, string> = Object.fromEntries(
+	itemPaymentMethods.map((m) => [m.id, m.label]),
+);

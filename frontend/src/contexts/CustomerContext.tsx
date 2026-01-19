@@ -1,6 +1,8 @@
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import type { Gender } from "../components/sale/types";
 
+export type CustomerTier = "vip" | "gold" | "silver" | "bronze";
+
 export interface Customer {
 	id: string;
 	name: string;
@@ -10,6 +12,7 @@ export interface Customer {
 	birthDate?: string;
 	memo?: string;
 	storedValue?: number;
+	totalSpent: number; // 누적 결제 금액 (LTV)
 	membership?: {
 		name: string;
 		used: number;
@@ -21,6 +24,42 @@ export interface Customer {
 	status: "active" | "inactive";
 	createdAt: string;
 }
+
+// LTV 기반 고객 등급 계산 (누적 결제 금액 기준)
+export const getCustomerTier = (totalSpent: number): CustomerTier => {
+	if (totalSpent >= 1000000) return "vip"; // 100만원 이상
+	if (totalSpent >= 500000) return "gold"; // 50만원 이상
+	if (totalSpent >= 200000) return "silver"; // 20만원 이상
+	return "bronze"; // 20만원 미만
+};
+
+export const tierConfig: Record<CustomerTier, { label: string; color: string; bgColor: string }> = {
+	vip: { label: "VIP", color: "text-amber-700", bgColor: "bg-amber-100" },
+	gold: { label: "Gold", color: "text-yellow-700", bgColor: "bg-yellow-100" },
+	silver: { label: "Silver", color: "text-gray-600", bgColor: "bg-gray-200" },
+	bronze: {
+		label: "Bronze",
+		color: "text-orange-700",
+		bgColor: "bg-orange-100",
+	},
+};
+
+// 활성/비활성 자동 판단 (90일 기준)
+export const getAutoStatus = (lastVisitDate?: string): "active" | "inactive" => {
+	if (!lastVisitDate) return "inactive";
+	const lastVisit = new Date(lastVisitDate);
+	const today = new Date();
+	const diffDays = Math.floor((today.getTime() - lastVisit.getTime()) / (1000 * 60 * 60 * 24));
+	return diffDays <= 90 ? "active" : "inactive";
+};
+
+// 마지막 방문 후 경과 일수
+export const getDaysSinceLastVisit = (lastVisitDate?: string): number | null => {
+	if (!lastVisitDate) return null;
+	const lastVisit = new Date(lastVisitDate);
+	const today = new Date();
+	return Math.floor((today.getTime() - lastVisit.getTime()) / (1000 * 60 * 60 * 24));
+};
 
 const getInitials = (name: string): string => {
 	const parts = name.trim().split(/\s+/);
@@ -43,6 +82,7 @@ const initialCustomers: Customer[] = [
 		gender: "female",
 		birthDate: "1992-05-15",
 		storedValue: 150000,
+		totalSpent: 720000, // Gold
 		membership: { name: "펌 정기권", used: 2, total: 10 },
 		firstVisitDate: "2024-03-15",
 		lastVisitDate: "2025-01-10",
@@ -58,6 +98,7 @@ const initialCustomers: Customer[] = [
 		gender: "female",
 		birthDate: "1988-11-22",
 		storedValue: 50000,
+		totalSpent: 320000, // Silver
 		firstVisitDate: "2024-06-20",
 		lastVisitDate: "2025-01-05",
 		visitCount: 8,
@@ -71,6 +112,7 @@ const initialCustomers: Customer[] = [
 		initials: "지우",
 		gender: "male",
 		birthDate: "1995-03-08",
+		totalSpent: 150000, // Bronze
 		membership: { name: "커트 회원권", used: 5, total: 12 },
 		firstVisitDate: "2024-09-01",
 		lastVisitDate: "2024-12-20",
@@ -85,6 +127,7 @@ const initialCustomers: Customer[] = [
 		initials: "수현",
 		gender: "female",
 		birthDate: "1990-07-30",
+		totalSpent: 120000, // Bronze
 		memo: "염색 알러지 있음 - 패치테스트 필수",
 		firstVisitDate: "2024-01-10",
 		lastVisitDate: "2024-08-15",
@@ -100,6 +143,7 @@ const initialCustomers: Customer[] = [
 		gender: "female",
 		birthDate: "1997-12-05",
 		storedValue: 200000,
+		totalSpent: 240000, // Silver
 		firstVisitDate: "2024-11-01",
 		lastVisitDate: "2025-01-15",
 		visitCount: 4,
@@ -114,6 +158,7 @@ const initialCustomers: Customer[] = [
 		gender: "female",
 		birthDate: "1994-06-18",
 		storedValue: 300000,
+		totalSpent: 1200000, // VIP
 		membership: { name: "염색 정기권", used: 1, total: 5 },
 		firstVisitDate: "2024-02-14",
 		lastVisitDate: "2025-01-12",
@@ -128,6 +173,7 @@ const initialCustomers: Customer[] = [
 		initials: "원영",
 		gender: "female",
 		birthDate: "2004-08-31",
+		totalSpent: 90000, // Bronze
 		memo: "학생 할인 적용",
 		firstVisitDate: "2024-10-05",
 		lastVisitDate: "2025-01-08",
@@ -143,6 +189,7 @@ const initialCustomers: Customer[] = [
 		gender: "male",
 		birthDate: "1991-12-30",
 		storedValue: 100000,
+		totalSpent: 280000, // Silver
 		firstVisitDate: "2024-05-20",
 		lastVisitDate: "2024-12-28",
 		visitCount: 7,
@@ -156,6 +203,7 @@ const initialCustomers: Customer[] = [
 		initials: "지효",
 		gender: "female",
 		birthDate: "1981-02-15",
+		totalSpent: 2100000, // VIP
 		membership: { name: "프리미엄 회원권", used: 8, total: 20 },
 		memo: "VIP 고객 - 특별 관리",
 		firstVisitDate: "2023-06-10",
@@ -172,6 +220,7 @@ const initialCustomers: Customer[] = [
 		gender: "male",
 		birthDate: "1972-08-14",
 		storedValue: 500000,
+		totalSpent: 2800000, // VIP
 		firstVisitDate: "2023-01-05",
 		lastVisitDate: "2025-01-16",
 		visitCount: 35,
@@ -185,6 +234,7 @@ const initialCustomers: Customer[] = [
 		initials: "다니",
 		gender: "male",
 		birthDate: "1996-12-10",
+		totalSpent: 180000, // Bronze
 		membership: { name: "커트 회원권", used: 3, total: 10 },
 		firstVisitDate: "2024-08-15",
 		lastVisitDate: "2025-01-05",
@@ -200,6 +250,7 @@ const initialCustomers: Customer[] = [
 		gender: "female",
 		birthDate: "1990-09-05",
 		storedValue: 250000,
+		totalSpent: 480000, // Silver
 		memo: "긴 머리 - 시술 시간 여유있게",
 		firstVisitDate: "2024-04-01",
 		lastVisitDate: "2024-11-20",
@@ -214,6 +265,7 @@ const initialCustomers: Customer[] = [
 		initials: "흥민",
 		gender: "male",
 		birthDate: "1992-07-08",
+		totalSpent: 60000, // Bronze
 		firstVisitDate: "2024-12-01",
 		lastVisitDate: "2025-01-10",
 		visitCount: 2,
@@ -228,6 +280,7 @@ const initialCustomers: Customer[] = [
 		gender: "female",
 		birthDate: "1993-05-16",
 		storedValue: 180000,
+		totalSpent: 980000, // Gold
 		membership: { name: "스타일링 정기권", used: 4, total: 8 },
 		firstVisitDate: "2024-01-20",
 		lastVisitDate: "2025-01-13",
@@ -242,6 +295,7 @@ const initialCustomers: Customer[] = [
 		initials: "보검",
 		gender: "male",
 		birthDate: "1993-06-16",
+		totalSpent: 140000, // Bronze
 		firstVisitDate: "2024-07-10",
 		lastVisitDate: "2024-10-05",
 		visitCount: 4,
@@ -256,6 +310,7 @@ const initialCustomers: Customer[] = [
 		gender: "female",
 		birthDate: "1981-10-30",
 		storedValue: 400000,
+		totalSpent: 1800000, // VIP
 		memo: "프리미엄 케어 선호",
 		firstVisitDate: "2023-09-15",
 		lastVisitDate: "2025-01-11",
@@ -270,6 +325,7 @@ const initialCustomers: Customer[] = [
 		initials: "종석",
 		gender: "male",
 		birthDate: "1989-09-14",
+		totalSpent: 320000, // Silver
 		membership: { name: "남성 커트 정기권", used: 6, total: 12 },
 		firstVisitDate: "2024-03-01",
 		lastVisitDate: "2024-12-15",
@@ -285,6 +341,7 @@ const initialCustomers: Customer[] = [
 		gender: "female",
 		birthDate: "1994-10-10",
 		storedValue: 80000,
+		totalSpent: 210000, // Silver
 		firstVisitDate: "2024-09-20",
 		lastVisitDate: "2025-01-07",
 		visitCount: 5,
@@ -299,6 +356,7 @@ const initialCustomers: Customer[] = [
 		gender: "male",
 		birthDate: "1979-07-10",
 		storedValue: 350000,
+		totalSpent: 1500000, // VIP
 		membership: { name: "프리미엄 회원권", used: 3, total: 10 },
 		memo: "조용한 시간대 선호",
 		firstVisitDate: "2023-11-01",
@@ -314,6 +372,7 @@ const initialCustomers: Customer[] = [
 		initials: "고은",
 		gender: "female",
 		birthDate: "1991-07-02",
+		totalSpent: 80000, // Bronze
 		firstVisitDate: "2024-11-15",
 		lastVisitDate: "2024-12-20",
 		visitCount: 2,
@@ -326,8 +385,11 @@ interface CustomerContextType {
 	customers: Customer[];
 	activeCustomers: Customer[];
 	addCustomer: (
-		customer: Omit<Customer, "id" | "initials" | "visitCount" | "status" | "createdAt">,
-	) => void;
+		customer: Omit<
+			Customer,
+			"id" | "initials" | "visitCount" | "status" | "createdAt" | "totalSpent"
+		>,
+	) => string; // 새로 생성된 고객 ID 반환
 	updateCustomer: (id: string, updates: Partial<Customer>) => void;
 	deleteCustomer: (id: string) => void;
 	searchCustomers: (query: string) => Customer[];
@@ -344,16 +406,24 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 	);
 
 	const addCustomer = useCallback(
-		(customer: Omit<Customer, "id" | "initials" | "visitCount" | "status" | "createdAt">): void => {
+		(
+			customer: Omit<
+				Customer,
+				"id" | "initials" | "visitCount" | "status" | "createdAt" | "totalSpent"
+			>,
+		): string => {
+			const newId = `cust-${String(Date.now())}`;
 			const newCustomer: Customer = {
 				...customer,
-				id: `cust-${String(Date.now())}`,
+				id: newId,
 				initials: getInitials(customer.name),
 				visitCount: 0,
+				totalSpent: 0, // 신규 고객은 누적 결제 0원
 				status: "active",
 				createdAt: getToday(),
 			};
 			setCustomers((prev) => [...prev, newCustomer]);
+			return newId;
 		},
 		[],
 	);

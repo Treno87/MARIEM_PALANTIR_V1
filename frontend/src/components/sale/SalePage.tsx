@@ -1,16 +1,19 @@
 import type { ReactElement } from "react";
 import { useCallback, useState } from "react";
 import { useCatalog } from "../../contexts/CatalogContext";
+import type { Customer } from "../../contexts/CustomerContext";
+import { useCustomers } from "../../contexts/CustomerContext";
+import { useSales } from "../../contexts/SaleContext";
 import { useStaff } from "../../contexts/StaffContext";
 import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { CartTable } from "./CartTable";
 import { CatalogTabs } from "./CatalogTabs";
 import { CustomerSelect } from "./CustomerSelect";
-import { initialCustomers } from "./constants";
+import { PAYMENT_METHOD_LABELS } from "./constants";
 import { PaymentSummary } from "./PaymentSummary";
 import { SaleFooter } from "./SaleFooter";
 import { StaffSelect } from "./StaffSelect";
-import type { CartItem, Customer, ItemPaymentMethod } from "./types";
+import type { CartItem, ItemPaymentMethod } from "./types";
 
 export default function SalePage(): ReactElement {
 	const { salesStaff } = useStaff();
@@ -21,7 +24,8 @@ export default function SalePage(): ReactElement {
 		membershipOptions,
 		discountEvents,
 	} = useCatalog();
-	const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
+	const { customers, addCustomer, updateCustomer } = useCustomers();
+	const { addSale } = useSales();
 	const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 	const [selectedDesignerId, setSelectedDesignerId] = useState<string>("1");
 	const [cart, setCart] = useState<CartItem[]>([]);
@@ -131,13 +135,22 @@ export default function SalePage(): ReactElement {
 		return event.discountValue;
 	};
 
-	const handleAddCustomer = (customer: Customer): void => {
-		setCustomers([...customers, customer]);
+	const handleAddCustomer = (newCustomer: {
+		name: string;
+		phone: string;
+		memo?: string;
+	}): string => {
+		return addCustomer(newCustomer);
 	};
 
 	const handleSave = (): void => {
 		if (selectedCustomerId === null || cart.length === 0) {
 			alert("고객과 시술/상품을 입력해주세요.");
+			return;
+		}
+
+		if (!selectedCustomer) {
+			alert("고객 정보를 찾을 수 없습니다.");
 			return;
 		}
 
@@ -153,48 +166,90 @@ export default function SalePage(): ReactElement {
 			(item) => item.type === "topup" && item.topupType === "membership",
 		);
 
-		// 정액권/정기권 사용 및 충전 반영
-		setCustomers(
-			customers.map((c) => {
-				if (c.id !== selectedCustomerId) return c;
+		// 디자이너 정보
+		const selectedStaff = salesStaff.find((s) => s.id === selectedDesignerId);
+		if (!selectedStaff) {
+			alert("담당 디자이너를 선택해주세요.");
+			return;
+		}
 
-				const updatedCustomer = { ...c };
+		// 결제수단별 금액 계산
+		const paymentAmounts: Record<string, number> = {};
+		for (const item of cart) {
+			const method = PAYMENT_METHOD_LABELS[item.paymentMethod] ?? item.paymentMethod;
+			paymentAmounts[method] = (paymentAmounts[method] ?? 0) + item.finalPrice;
+		}
 
-				// 정액권 사용 차감 후 충전 반영
-				if (usedStoredValue > 0 || storedValueTopup > 0) {
-					updatedCustomer.storedValue =
-						(updatedCustomer.storedValue ?? 0) - usedStoredValue + storedValueTopup;
-				}
+		const payments = Object.entries(paymentAmounts)
+			.filter(([, amount]) => amount > 0)
+			.map(([method, amount]) => ({ method, amount }));
 
-				// 정기권 사용 차감 후 충전 반영
-				if (updatedCustomer.membership) {
-					updatedCustomer.membership = {
-						...updatedCustomer.membership,
-						used: updatedCustomer.membership.used + usedMembershipCount,
-						total: updatedCustomer.membership.total + membershipTopup,
-					};
-				} else if (membershipTopup > 0 && membershipItem) {
-					updatedCustomer.membership = {
-						name: membershipItem.name,
-						used: 0,
-						total: membershipTopup,
-					};
-				}
+		// SaleRecord 생성
+		const today = new Date().toISOString().split("T")[0] ?? "";
+		const isNewCustomer = selectedCustomer.visitCount === 0;
+		const grandTotal = total + topupTotal;
 
-				return updatedCustomer;
-			}),
-		);
+		const saleRecord = {
+			saleDate: today,
+			customer: {
+				id: selectedCustomer.id,
+				name: selectedCustomer.name,
+				phone: selectedCustomer.phone,
+				type: isNewCustomer ? "new" : "returning",
+			} as const,
+			staff: {
+				id: selectedStaff.id,
+				name: selectedStaff.name,
+				color: selectedStaff.color,
+			},
+			items: cart.map((item) => ({
+				name: item.name,
+				quantity: item.quantity,
+				unitPrice: item.price,
+				lineTotal: item.finalPrice,
+				type: item.type,
+			})),
+			subtotal,
+			discountAmount: totalDiscount,
+			total: grandTotal,
+			payments,
+			status: "completed" as const,
+		};
 
-		// eslint-disable-next-line no-console
-		console.log({
-			customer_id: selectedCustomerId,
-			designer_id: selectedDesignerId,
-			items: cart,
-			total,
-			topupTotal,
-			storedValueTopup,
-			membershipTopup,
-		});
+		// 거래 저장
+		addSale(saleRecord);
+
+		// 고객 정보 업데이트
+		const updates: Partial<Customer> = {};
+
+		// 정액권 사용 차감 후 충전 반영
+		if (usedStoredValue > 0 || storedValueTopup > 0) {
+			updates.storedValue =
+				(selectedCustomer.storedValue ?? 0) - usedStoredValue + storedValueTopup;
+		}
+
+		// 정기권 사용 차감 후 충전 반영
+		if (selectedCustomer.membership) {
+			updates.membership = {
+				...selectedCustomer.membership,
+				used: selectedCustomer.membership.used + usedMembershipCount,
+				total: selectedCustomer.membership.total + membershipTopup,
+			};
+		} else if (membershipTopup > 0 && membershipItem) {
+			updates.membership = {
+				name: membershipItem.name,
+				used: 0,
+				total: membershipTopup,
+			};
+		}
+
+		// 방문 횟수, 마지막 방문일, 총 결제액(LTV) 업데이트
+		updates.visitCount = selectedCustomer.visitCount + 1;
+		updates.lastVisitDate = today;
+		updates.totalSpent = selectedCustomer.totalSpent + grandTotal;
+
+		updateCustomer(selectedCustomerId, updates);
+
 		alert("거래가 저장되었습니다.");
 
 		// 초기화

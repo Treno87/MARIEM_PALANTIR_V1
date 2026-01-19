@@ -1,6 +1,17 @@
 {
 	"hooks": {
-		"PostToolUse": [],
+		"PostToolUse": [
+			{
+				"matcher": "Write|Edit",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/quality-guard.sh",
+						"timeout": 30000
+					}
+				]
+			}
+		],
 		"Notification": [],
 		"Stop": []
 	},

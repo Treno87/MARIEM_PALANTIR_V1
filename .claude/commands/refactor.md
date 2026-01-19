@@ -1,6 +1,10 @@
 ---
-description: Kent Beck의 단순 설계 4원칙에 따라 코드를 분석하고, 즉시 수정(Edit)을 수행합니다.
+description: Kent Beck의 4원칙으로 즉시 리팩토링 실행
 ---
+
+# Prerequisites
+먼저 `.claude/principles/clean-code.md`를 읽으세요.
+
 # Role
 당신은 '리팩토링 전문가'입니다.
 

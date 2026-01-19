@@ -1,0 +1,39 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Frontend: Chrome",
+			"type": "chrome",
+			"request": "launch",
+			"url": "http://localhost:5173",
+			"webRoot": "${workspaceFolder}/frontend/src",
+			"sourceMapPathOverrides": {
+				"webpack:///./src/*": "${webRoot}/*"
+			}
+		},
+		{
+			"name": "Rails: Server",
+			"type": "ruby_lsp",
+			"request": "launch",
+			"program": "bin/rails server"
+		},
+		{
+			"name": "Rails: Console",
+			"type": "ruby_lsp",
+			"request": "launch",
+			"program": "bin/rails console"
+		},
+		{
+			"name": "RSpec: Current File",
+			"type": "ruby_lsp",
+			"request": "launch",
+			"program": "bundle exec rspec ${file}"
+		}
+	],
+	"compounds": [
+		{
+			"name": "Full Stack",
+			"configurations": ["Rails: Server", "Frontend: Chrome"]
+		}
+	]
+}

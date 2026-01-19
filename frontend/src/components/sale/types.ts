@@ -13,7 +13,14 @@ export interface Customer {
 }
 
 // 항목별 결제수단 타입
-export type ItemPaymentMethod = "card" | "cash" | "transfer" | "stored_value" | "membership";
+export type ItemPaymentMethod =
+	| "card"
+	| "cash"
+	| "transfer"
+	| "npay"
+	| "stored_value"
+	| "membership"
+	| "other";
 
 export interface CartItem {
 	id: string;
@@ -108,3 +115,41 @@ export interface MembershipOption {
 
 export type DiscountType = "percent" | "amount";
 export type ActiveTab = "service" | "product" | "membership";
+
+// 거래 내역 관련 타입
+export type SaleStatus = "completed" | "voided" | "refunded";
+
+export type CustomerType = "new" | "returning" | "substitute";
+
+export interface SaleRecord {
+	id: string;
+	saleDate: string; // YYYY-MM-DD
+	customer: {
+		id: string;
+		name: string;
+		phone: string;
+		type: CustomerType; // 신규/재방문
+	};
+	staff: {
+		id: string;
+		name: string;
+		color: string;
+	};
+	items: {
+		name: string;
+		quantity: number;
+		unitPrice: number;
+		lineTotal: number;
+		type: "service" | "product" | "topup";
+	}[];
+	subtotal: number;
+	discountAmount: number;
+	total: number;
+	payments: {
+		method: string;
+		amount: number;
+	}[];
+	status: SaleStatus;
+	note?: string;
+	createdAt: string;
+}

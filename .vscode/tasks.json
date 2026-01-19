@@ -1,0 +1,80 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Frontend: Dev",
+			"type": "shell",
+			"command": "npm run dev",
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Frontend: Build",
+			"type": "shell",
+			"command": "npm run build",
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": ["$tsc"]
+		},
+		{
+			"label": "Frontend: Lint",
+			"type": "shell",
+			"command": "npm run lint",
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"problemMatcher": ["$eslint-stylish"]
+		},
+		{
+			"label": "Frontend: Type Check",
+			"type": "shell",
+			"command": "npm run typecheck",
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"problemMatcher": ["$tsc"]
+		},
+		{
+			"label": "Rails: Server",
+			"type": "shell",
+			"command": "rails server",
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Rails: Migrate",
+			"type": "shell",
+			"command": "rails db:migrate",
+			"problemMatcher": []
+		},
+		{
+			"label": "RSpec: All",
+			"type": "shell",
+			"command": "bundle exec rspec",
+			"problemMatcher": []
+		},
+		{
+			"label": "Full Stack: Start",
+			"dependsOn": ["Rails: Server", "Frontend: Dev"],
+			"problemMatcher": []
+		}
+	]
+}

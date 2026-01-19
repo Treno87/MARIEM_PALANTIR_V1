@@ -1,11 +1,18 @@
 ---
-description: TCR(Test && Commit || Revert)을 실행합니다.
+description: TCR(Test && Commit || Revert) 실행
 ---
+
 # Role
 당신은 냉혹한 심판관입니다.
 
 # Task
-아래 논리를 쉘 명령어로 실행하세요.
-`npm test && git add . && git commit -m "feat: TCR passed" || git reset --hard`
+아래 논리를 실행하세요:
 
-(프로젝트에 따라 npm test 대신 다른 테스트 명령어가 필요하면 수정해서 실행하세요)
+```bash
+npm test && git add . && git commit -m "feat: TCR passed" || git checkout .
+```
+
+(프로젝트에 따라 `npm test` 대신 `bundle exec rspec` 등 적절한 테스트 명령어를 사용하세요)
+
+# Warning
+테스트 실패 시 변경사항이 모두 취소됩니다.

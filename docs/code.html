@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Marketing &amp; Target Extraction (Updated)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1b6769",
+                        "accent-gold": "#C7A87A",
+                        "background-light": "#fcfcfd",
+                        "background-dark": "#19222e",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: 'Manrope', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            grid-template-rows: auto auto;
+            gap: 12px;
+        }
+        .soft-ui-shadow {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+        .safe-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }.no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-[#121717] dark:text-white antialiased flex overflow-hidden h-screen">
+<aside class="w-[280px] bg-white dark:bg-gray-900 border-r border-[#dde4e4] dark:border-gray-800 flex flex-col h-full z-50 overflow-y-auto no-scrollbar shrink-0">
+<div class="p-6 flex items-center gap-3">
+<div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-lg">spa</span>
+</div>
+<span class="font-extrabold text-xl tracking-tight text-primary">SalonFlow</span>
+</div>
+<nav class="flex-1 px-4 space-y-1 pb-6">
+<div class="space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-bold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="text-sm font-bold">Bookings</span>
+</a>
+<div class="space-y-1">
+<button class="w-full flex items-center justify-between px-3 py-2.5 bg-primary/5 text-primary rounded-xl transition-all">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">campaign</span>
+<span class="text-sm font-bold">Marketing</span>
+</div>
+<span class="material-symbols-outlined text-sm transform rotate-180">expand_more</span>
+</button>
+<div class="pl-11 space-y-1">
+<a class="block px-3 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-primary transition-colors" href="#">Messaging Center</a>
+<a class="block px-3 py-2 text-sm font-bold text-primary bg-primary/10 rounded-lg" href="#">Target Extraction</a>
+<a class="block px-3 py-2 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-primary transition-colors" href="#">Campaign Analysis</a>
+</div>
+</div>
+<a class="flex items-center gap-3 px-3 py-2.5 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-sm font-bold">Inventory</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-sm font-bold">Insights</span>
+</a>
+</div>
+<div class="pt-6 mt-6 border-t border-[#dde4e4] dark:border-gray-800">
+<p class="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Account</p>
+<a class="flex items-center gap-3 px-3 py-2.5 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-bold">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined text-red-500">logout</span>
+<span class="text-sm font-bold">Logout</span>
+</a>
+</div>
+</nav>
+</aside>
+<div class="flex-1 flex flex-col relative overflow-y-auto no-scrollbar">
+<header class="sticky top-0 z-30 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-[#dde4e4] dark:border-gray-800">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#121717] dark:text-white">menu</span>
+<h1 class="text-lg font-extrabold tracking-tight">Marketing &amp; Extraction</h1>
+</div>
+<button class="text-primary dark:text-primary font-bold text-sm">Reset</button>
+</header>
+<main class="p-4 pb-48">
+<section class="mb-6">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-base font-bold text-[#121717] dark:text-white">Quick Filters</h2>
+<div class="flex items-center gap-1 text-xs font-semibold text-primary/70">
+<span class="material-symbols-outlined text-sm">tune</span>
+                        Advanced
+                    </div>
+</div>
+<div class="bento-grid">
+<div class="bg-white dark:bg-gray-800 rounded-xl p-4 soft-ui-shadow border border-[#dde4e4] dark:border-gray-700 col-span-1 row-span-1 ring-2 ring-primary">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">cake</span>
+</div>
+<span class="material-symbols-outlined text-primary">check_circle</span>
+</div>
+<p class="font-bold text-sm leading-tight">Birthday Month</p>
+<p class="text-[10px] text-gray-500 mt-1">Celebrating this month</p>
+</div>
+<div class="bg-white dark:bg-gray-800 rounded-xl p-4 soft-ui-shadow border border-[#dde4e4] dark:border-gray-700 col-span-1">
+<div class="p-2 bg-accent-gold/10 rounded-lg text-accent-gold w-fit mb-4">
+<span class="material-symbols-outlined">loyalty</span>
+</div>
+<p class="font-bold text-sm leading-tight">Milestones</p>
+<p class="text-[10px] text-gray-500 mt-1">Anniversaries</p>
+</div>
+<div class="bg-white dark:bg-gray-800 rounded-xl p-4 soft-ui-shadow border border-[#dde4e4] dark:border-gray-700 col-span-2">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-500">
+<span class="material-symbols-outlined">history</span>
+</div>
+<div>
+<p class="font-bold text-sm leading-tight">90+ Days Inactive</p>
+<p class="text-[10px] text-gray-500">Clients who haven't visited</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<div class="flex items-center gap-4 mb-8">
+<div class="flex-1 bg-primary text-white rounded-xl p-5 soft-ui-shadow relative overflow-hidden">
+<div class="relative z-10">
+<p class="text-xs font-medium opacity-80 mb-1">Matching Customers</p>
+<div class="flex items-baseline gap-2">
+<p class="text-3xl font-extrabold">124</p>
+<span class="text-[10px] font-bold bg-white/20 px-1.5 py-0.5 rounded">+12%</span>
+</div>
+</div>
+<span class="material-symbols-outlined absolute -right-4 -bottom-4 text-white/10 text-8xl">group</span>
+</div>
+</div>
+<section>
+<div class="flex items-center justify-between px-1 mb-4">
+<h3 class="text-base font-bold text-[#121717] dark:text-white">Customer Results</h3>
+<div class="flex items-center gap-2">
+<span class="text-xs font-semibold text-gray-500">Select All</span>
+<div class="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded-full relative">
+<div class="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm"></div>
+</div>
+</div>
+</div>
+<div class="space-y-3">
+<div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-[#dde4e4] dark:border-gray-700 soft-ui-shadow flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-accent-gold/20 flex items-center justify-center text-accent-gold font-bold">
+                            SM
+                        </div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-sm">Sarah Miller</h4>
+<span class="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">VIP</span>
+</div>
+<p class="text-xs text-gray-500 mb-1">Balayage &amp; Cut</p>
+<div class="flex items-center gap-3">
+<span class="text-[10px] text-gray-400">Last: 12 Oct</span>
+<span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">LTV: $1,420</span>
+</div>
+</div>
+<div class="w-6 h-6 rounded border-2 border-primary bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm">check</span>
+</div>
+</div>
+<div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-[#dde4e4] dark:border-gray-700 soft-ui-shadow flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                            JD
+                        </div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-sm">James Davidson</h4>
+</div>
+<p class="text-xs text-gray-500 mb-1">Classic Fade</p>
+<div class="flex items-center gap-3">
+<span class="text-[10px] text-gray-400">Last: 05 Nov</span>
+<span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">LTV: $480</span>
+</div>
+</div>
+<div class="w-6 h-6 rounded border-2 border-[#dde4e4] dark:border-gray-600"></div>
+</div>
+<div class="bg-white dark:bg-gray-800 rounded-xl p-4 border border-[#dde4e4] dark:border-gray-700 soft-ui-shadow flex items-center gap-3 opacity-90">
+<div class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-500 font-bold">
+                            EL
+                        </div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-sm">Elena Lopez</h4>
+<span class="material-symbols-outlined text-accent-gold text-xs">auto_awesome</span>
+</div>
+<p class="text-xs text-gray-500 mb-1">Full Highlights</p>
+<div class="flex items-center gap-3">
+<span class="text-[10px] text-gray-400">Last: 18 Oct</span>
+<span class="text-[10px] font-bold text-gray-700 dark:text-gray-300">LTV: $890</span>
+</div>
+</div>
+<div class="w-6 h-6 rounded border-2 border-primary bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm">check</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer class="fixed bottom-0 right-0 w-[calc(100%-280px)] bg-white/95 dark:bg-background-dark/95 backdrop-blur-xl border-t border-[#dde4e4] dark:border-gray-800 px-4 pt-4 safe-bottom z-40">
+<div class="flex gap-3 mb-4">
+<button class="flex-1 bg-white dark:bg-gray-800 border border-[#dde4e4] dark:border-gray-700 py-3.5 rounded-xl font-bold text-sm text-[#121717] dark:text-white flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">sms</span>
+                    Send SMS
+                </button>
+<button class="flex-[1.5] bg-primary py-3.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-lg">rocket_launch</span>
+                    Create Campaign
+                </button>
+</div>
+<div class="flex justify-around pb-2 opacity-40">
+<div class="flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-xl">calendar_today</span>
+<span class="text-[9px] font-bold uppercase tracking-widest">Bookings</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-primary opacity-100">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1">campaign</span>
+<span class="text-[9px] font-bold uppercase tracking-widest">Marketing</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-xl">analytics</span>
+<span class="text-[9px] font-bold uppercase tracking-widest">Insights</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-xl">settings</span>
+<span class="text-[9px] font-bold uppercase tracking-widest">Settings</span>
+</div>
+</div>
+</footer>
+</div>
+
+</body></html>

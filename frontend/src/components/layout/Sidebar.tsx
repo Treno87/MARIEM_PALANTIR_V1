@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 
 interface NavItem {
 	icon: string;
@@ -7,18 +8,128 @@ interface NavItem {
 	filled?: boolean;
 }
 
-const navItems: NavItem[] = [
+interface SubMenuItem {
+	icon: string;
+	label: string;
+	path: string;
+}
+
+interface CollapsibleNavItem {
+	icon: string;
+	label: string;
+	basePath: string;
+	subItems: SubMenuItem[];
+}
+
+const mainNavItems: NavItem[] = [
 	{ icon: "dashboard", label: "대시보드", path: "/dashboard" },
 	{ icon: "point_of_sale", label: "거래 입력", path: "/sale", filled: true },
 	{ icon: "receipt_long", label: "거래 내역", path: "/sales" },
 	{ icon: "analytics", label: "리포트", path: "/reports" },
-	{ icon: "group", label: "고객 관리", path: "/customers" },
-	{ icon: "inventory_2", label: "시술/상품", path: "/catalog" },
 ];
+
+const managementNavItems: NavItem[] = [
+	{ icon: "group", label: "고객 관리", path: "/customers" },
+	{ icon: "badge", label: "직원 관리", path: "/staff" },
+];
+
+const catalogMenu: CollapsibleNavItem = {
+	icon: "inventory_2",
+	label: "카탈로그",
+	basePath: "/catalog",
+	subItems: [
+		{ icon: "content_cut", label: "시술 관리", path: "/catalog/services" },
+		{ icon: "shopping_bag", label: "상품 관리", path: "/catalog/products" },
+		{ icon: "card_membership", label: "멤버쉽", path: "/catalog/membership" },
+		{ icon: "local_offer", label: "이벤트", path: "/catalog/events" },
+	],
+};
 
 const accountItems: NavItem[] = [
 	{ icon: "settings", label: "설정", path: "/settings" },
 ];
+
+function NavLinkItem({ item }: { item: NavItem }) {
+	return (
+		<NavLink
+			to={item.path}
+			className={({ isActive }) =>
+				`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+					isActive
+						? "bg-primary-500/10 text-primary-500"
+						: "text-neutral-500 hover:bg-neutral-50"
+				}`
+			}
+		>
+			{({ isActive }) => (
+				<>
+					<span
+						className="material-symbols-outlined"
+						style={
+							isActive && item.filled
+								? { fontVariationSettings: "'FILL' 1" }
+								: undefined
+						}
+					>
+						{item.icon}
+					</span>
+					<span className="text-sm font-bold">{item.label}</span>
+				</>
+			)}
+		</NavLink>
+	);
+}
+
+function CollapsibleMenu({ menu }: { menu: CollapsibleNavItem }) {
+	const location = useLocation();
+	const isInCatalog = location.pathname.startsWith(menu.basePath);
+	const [isOpen, setIsOpen] = useState(isInCatalog);
+
+	return (
+		<div>
+			<button
+				onClick={() => setIsOpen(!isOpen)}
+				className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+					isInCatalog
+						? "bg-primary-500/10 text-primary-500"
+						: "text-neutral-500 hover:bg-neutral-50"
+				}`}
+			>
+				<span className="material-symbols-outlined">{menu.icon}</span>
+				<span className="text-sm font-bold flex-1 text-left">{menu.label}</span>
+				<span
+					className={`material-symbols-outlined text-lg transition-transform ${
+						isOpen ? "rotate-180" : ""
+					}`}
+				>
+					expand_more
+				</span>
+			</button>
+			{isOpen && (
+				<div className="ml-4 mt-1 space-y-1">
+					{menu.subItems.map((subItem) => (
+						<NavLink
+							key={subItem.path}
+							to={subItem.path}
+							className={({ isActive }) =>
+								`flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+									isActive
+										? "bg-primary-500/10 text-primary-500"
+										: "text-neutral-500 hover:bg-neutral-50"
+								}`
+							}
+						>
+							<span className="material-symbols-outlined text-xl">
+								{subItem.icon}
+							</span>
+							<span className="text-sm font-medium">{subItem.label}</span>
+						</NavLink>
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
 
 export default function Sidebar() {
 	return (
@@ -37,58 +148,40 @@ export default function Sidebar() {
 
 			{/* Navigation */}
 			<nav className="flex-1 px-4 space-y-1 pb-6">
+				{/* Main navigation */}
 				<div className="space-y-1">
-					{navItems.map((item) => (
-						<NavLink
-							key={item.path}
-							to={item.path}
-							className={({ isActive }) =>
-								`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-									isActive
-										? "bg-primary-500/10 text-primary-500"
-										: "text-neutral-500 hover:bg-neutral-50"
-								}`
-							}
-						>
-							{({ isActive }) => (
-								<>
-									<span
-										className="material-symbols-outlined"
-										style={
-											isActive && item.filled
-												? { fontVariationSettings: "'FILL' 1" }
-												: undefined
-										}
-									>
-										{item.icon}
-									</span>
-									<span className="text-sm font-bold">{item.label}</span>
-								</>
-							)}
-						</NavLink>
+					{mainNavItems.map((item) => (
+						<NavLinkItem key={item.path} item={item} />
 					))}
 				</div>
 
+				{/* Management section */}
+				<div className="pt-4 mt-4 border-t border-neutral-200">
+					<p className="px-3 text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2">
+						관리
+					</p>
+					<div className="space-y-1">
+						{managementNavItems.map((item) => (
+							<NavLinkItem key={item.path} item={item} />
+						))}
+					</div>
+				</div>
+
+				{/* Catalog section */}
+				<div className="pt-4 mt-4 border-t border-neutral-200">
+					<p className="px-3 text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2">
+						판매 항목
+					</p>
+					<CollapsibleMenu menu={catalogMenu} />
+				</div>
+
 				{/* Account section */}
-				<div className="pt-6 mt-6 border-t border-neutral-200">
+				<div className="pt-4 mt-4 border-t border-neutral-200">
 					<p className="px-3 text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2">
 						계정
 					</p>
 					{accountItems.map((item) => (
-						<NavLink
-							key={item.path}
-							to={item.path}
-							className={({ isActive }) =>
-								`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-									isActive
-										? "bg-primary-500/10 text-primary-500"
-										: "text-neutral-500 hover:bg-neutral-50"
-								}`
-							}
-						>
-							<span className="material-symbols-outlined">{item.icon}</span>
-							<span className="text-sm font-bold">{item.label}</span>
-						</NavLink>
+						<NavLinkItem key={item.path} item={item} />
 					))}
 					<button className="w-full flex items-center gap-3 px-3 py-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-all">
 						<span className="material-symbols-outlined">logout</span>

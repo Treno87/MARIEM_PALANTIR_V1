@@ -1,195 +1,353 @@
 # PRD: Mariem Palantir MVP
 
-## 제품 개요
+## 1. 제품 개요
 
-### 제품명
-Mariem Palantir - 미용실 거래 입력 시스템
+### 1.1 제품명
+**Mariem Palantir** - 미용실 거래 입력 시스템
 
-### 목적
-미용실의 모든 거래(시술, 상품, 할인, 정액권, 포인트, 재고)를 **일관된 원장 구조**로 기록한다.
+### 1.2 목적
+미용실 1호점용 CRM/POS MVP. **거래 입력**과 **리포트 조회**가 핵심 기능.
 
-### 핵심 가치
-- **입력 정확성**: 거래 시점의 가격/할인 정보를 스냅샷으로 보존
-- **확장 가능성**: 분석, 급여 계산 등 후속 기능을 위한 데이터 구조 확보
-- **일관성**: 모든 금전 흐름을 원장(ledger) 패턴으로 추적
+### 1.3 핵심 가치
+- **정확한 거래 기록**: 거래 시점의 가격/할인 정보를 스냅샷으로 보존
+- **실시간 매출 파악**: 일/월/디자이너별/결제수단별 리포트
+- **확장 가능성**: SaaS 멀티테넌트 구조 (현재는 1개 점포만 사용)
 
 ---
 
-## 사용자 및 역할
+## 2. 사용자 및 역할
 
-| 역할 | 설명 | 주요 기능 |
+| 역할 | 설명 | 주요 권한 |
 |------|------|----------|
-| OWNER | 매장 소유자 | 모든 기능 접근, 설정 관리 |
-| MANAGER | 매니저 | 거래 입력, 마스터 데이터 관리 |
-| STYLIST | 스타일리스트 | 거래 입력 (제한적) |
+| owner | 원장 | 모든 기능, 직원 관리 |
+| manager | 매니저 | 거래 관리, 리포트 조회, 할인 권한 |
+| staff | 디자이너/스탭 | 거래 생성, 본인 거래 조회 |
+| viewer | 열람자 | 조회만 가능 |
+
+### 권한 매트릭스
+
+| 기능 | owner | manager | staff | viewer |
+|------|-------|---------|-------|--------|
+| 거래 생성 | O | O | O | X |
+| 거래 조회 (본인) | O | O | O | O |
+| 거래 조회 (전체) | O | O | X | O |
+| 거래 취소 | O | O | X | X |
+| 할인 적용 | O | O | 제한 | X |
+| 리포트 조회 | O | O | X | O |
+| 고객 관리 | O | O | O | X |
+| 카탈로그 관리 | O | O | X | X |
+| 직원 관리 | O | X | X | X |
 
 ---
 
-## 기능 요구사항
+## 3. 핵심 도메인 결정사항
 
-### 1. 마스터 데이터 관리
-
-#### 1.1 서비스 관리
-- 서비스 카테고리 CRUD (커트, 펌, 염색, 클리닉 등)
-- 서비스 CRUD (이름, 정가, 활성 상태)
-- 카테고리별 서비스 목록 조회
-
-#### 1.2 상품 관리
-- 공급업체(Vendor) CRUD
-- 상품 CRUD
-  - 종류: retail(판매용), consumable(소모품), both
-  - 용량 정보 (size_value, size_unit)
-  - 구매 단가, 판매 단가
-
-#### 1.3 직원 관리
-- 직원 CRUD (이름, 직책, 연락처, 활성 상태)
-- 기본 수수료율 설정 (향후 급여 계산용)
-
-#### 1.4 정액권 플랜 관리
-- 정액권 상품 CRUD
-- 판매가(price_paid) vs 충전금액(value_amount)
-- 예: 10만원 결제 → 11만원 충전
-
-### 2. 고객 관리
-
-- 고객 CRUD (이름, 연락처, 메모)
-- 고객별 포인트 잔액 조회
-- 고객별 정액권 잔액 조회
-- 고객별 방문 이력 조회
-
-### 3. 거래 입력 (핵심)
-
-#### 3.1 방문(Visit) 생성
-- 고객 선택
-- 방문 일시 기록
-- 상태: draft(임시) → finalized(확정)
-
-#### 3.2 판매 라인(SaleLineItem) 추가
-- 시술 또는 상품 선택
-- 담당 직원 선택
-- 수량 입력
-- **자동 가격 계산**:
-  - 마스터 정가 로드
-  - 적용 가능한 할인 규칙 탐색
-  - 할인 적용 후 최종가 계산
-  - 모든 금액을 스냅샷으로 저장
-
-#### 3.3 결제(Payment) 추가
-- 복수 결제 수단 지원
-  - 카드 (card)
-  - 현금 (cash)
-  - 계좌이체 (bank)
-  - 정액권 (prepaid) → 정액권 원장에 사용 기록
-  - 포인트 (points) → 포인트 원장에 사용 기록
-- 미결제 금액 표시
-- 결제 완료 여부 확인
-
-#### 3.4 거래 확정
-- 결제 완료 시 확정 가능
-- 확정 시 포인트 자동 적립 (포인트 규칙 기반)
-- 확정된 거래는 수정 불가
-
-### 4. 가격 규칙
-
-#### 4.1 할인 규칙(PricingRule)
-- 규칙 유형: percent(%), amount(원)
-- 적용 대상:
-  - 전체 서비스
-  - 특정 카테고리
-  - 특정 서비스
-  - 전체 상품
-  - 특정 상품
-- 유효 기간 (starts_at, ends_at)
-
-#### 4.2 포인트 규칙(PointRule)
-- 규칙 유형: percent_of_net(결제금액의 %), fixed(고정)
-- 적용 대상 설정
-- 유효 기간
-
-### 5. 정액권 원장
-
-#### 5.1 정액권 판매
-- 고객에게 정액권 판매 기록
-- 판매 직원 기록
-- 판매 시점의 플랜 정보 저장
-
-#### 5.2 정액권 사용
-- 결제 시 정액권 차감
-- FIFO 방식 (오래된 것부터 사용)
-- 사용 내역 기록 (방문, 금액)
-
-#### 5.3 잔액 조회
-- 고객별 정액권 잔액
-- 정액권별 잔액 및 사용 내역
-
-### 6. 포인트 원장
-
-#### 6.1 포인트 적립
-- 거래 확정 시 자동 적립
-- 포인트 규칙 기반 계산
-
-#### 6.2 포인트 사용
-- 결제 시 포인트 차감
-- 1포인트 = 1원
-
-#### 6.3 포인트 조정
-- 수동 조정 (관리자)
-- 메모 기록
-
-#### 6.4 잔액 조회
-- 고객별 포인트 잔액
-- 포인트 거래 내역
-
-### 7. 재고 관리
-
-#### 7.1 입고 기록
-- 공급업체별 입고
-- 품목별 수량, 단가
-
-#### 7.2 출고 기록
-- 상품 판매 시 자동 출고
-- 시술 시 소모품 수동 기록
-- 폐기 기록
-
-#### 7.3 재고 조회
-- 품목별 현재 재고 (이벤트 합계)
-- 재고 이벤트 이력
+| # | 질문 | 결정 |
+|---|------|------|
+| 1 | 고객 중복 기준 | `tenant_id + phone` (전화번호 없으면 NULL 허용) |
+| 2 | 거래일 기준 | `sale_date` 필드 (결제일과 동일, 수동 변경 가능) |
+| 3 | 라인아이템 개수 | 제한 없음 (1개 이상 필수) |
+| 4 | 할인 적용 단위 | 거래 전체 (항목별 할인은 2차) |
+| 5 | 할인 중복 | MVP에서는 1개만 허용 |
+| 6 | 분할 결제 | 가능 (여러 결제수단 사용 가능) |
+| 7 | 결제수단 종류 | cash, card, transfer, stored_value, giftcard, other |
+| 8 | 거래 취소/환불 | status를 'voided'로 변경 (원본 보존) |
+| 9 | 거래 수정 | 원본 수정 (단, audit_log에 기록) |
+| 10 | 디자이너 귀속 | 거래 단위 (1명) |
+| 11 | 정액권 MVP 범위 | 소진(결제)만, 판매/충전은 수동 조정 |
+| 12 | 리포트 매출 기준 | 할인 후 순매출 (최종 결제금액) |
+| 13 | 신규 고객 정의 | `customers.first_visit_at`이 조회 기간 내 |
+| 14 | 직원별 조회 범위 | staff는 본인 거래만, manager/owner/viewer는 전체 |
 
 ---
 
-## 비기능 요구사항
+## 4. MVP 기능 범위
 
-### 보안
-- 사용자 인증 (Devise)
-- 매장별 데이터 격리 (store_id 스코핑)
+### 4.1 거래 입력 화면 (SalePage)
 
-### 성능
-- 페이지네이션 적용
-- 인덱스 최적화
+고객/디자이너 선택 → 시술/상품 추가 → 할인 → 결제 → 저장
 
-### UI/UX
-- 반응형 디자인 (Tailwind CSS)
-- 한글 지원
+**구성 요소**:
+1. **거래 기본정보**: 거래일, 메모
+2. **고객 선택**: 검색 + 신규 생성
+3. **담당 디자이너**: 드롭다운 선택
+4. **시술/상품**: 카탈로그 선택 또는 직접 입력
+5. **할인**: % 또는 금액
+6. **결제**: 복수 결제수단 지원
+7. **요약**: 합계 및 잔액 표시
+
+**저장 조건**:
+- 고객 선택됨
+- 디자이너 선택됨
+- 항목 1개 이상
+- 결제 합계 = 최종 금액
+
+### 4.2 리포트 화면 (ReportPage)
+
+일/월 매출, 디자이너별, 결제수단별, 시술/상품별 집계
+
+**구성 요소**:
+1. **기간 선택**: 일별/월별 토글
+2. **요약 카드**: 총매출, 순매출, 거래건수, 신규고객
+3. **매출 차트**: 시간대별(일별) / 일별(월별)
+4. **상세 테이블**: 디자이너별, 결제수단별, 카테고리별
 
 ---
 
-## 제외 범위 (MVP)
+## 5. 데이터 모델
+
+### 5.1 Tenant (점포)
+```typescript
+interface Tenant {
+  id: number;
+  name: string;
+  timezone: string;  // 기본값: 'Asia/Seoul'
+}
+```
+
+### 5.2 User (직원/디자이너)
+```typescript
+interface User {
+  id: number;
+  tenant_id: number;
+  email: string;
+  name: string;
+  role: 'owner' | 'manager' | 'staff' | 'viewer';
+  active: boolean;
+}
+```
+
+### 5.3 Customer (고객)
+```typescript
+interface Customer {
+  id: number;
+  tenant_id: number;
+  name: string;
+  phone: string | null;
+  memo: string | null;
+  status: 'active' | 'inactive' | 'blocked';
+  first_visit_at: string | null;  // 첫 거래 시 자동 설정
+}
+```
+
+### 5.4 CatalogCategory (카테고리)
+```typescript
+interface CatalogCategory {
+  id: number;
+  tenant_id: number;
+  name: string;  // 커트, 펌, 염색, 클리닉, 두피, 상품
+}
+```
+
+### 5.5 CatalogItem (시술/상품)
+```typescript
+interface CatalogItem {
+  id: number;
+  tenant_id: number;
+  category_id: number | null;
+  kind: 'service' | 'product';
+  name: string;
+  base_price: number;
+  active: boolean;
+}
+```
+
+### 5.6 Sale (거래 헤더)
+```typescript
+interface Sale {
+  id: number;
+  tenant_id: number;
+  customer_id: number;
+  staff_id: number;
+  sale_date: string;  // YYYY-MM-DD
+  status: 'completed' | 'voided' | 'refunded';
+  note: string | null;
+
+  // 계산 필드 (조회 시)
+  subtotal: number;       // sum(items.line_total)
+  discount_amount: number;
+  total: number;          // subtotal - discount_amount
+}
+```
+
+### 5.7 SaleItem (거래 라인아이템)
+```typescript
+interface SaleItem {
+  id: number;
+  sale_id: number;
+  catalog_item_id: number | null;
+  kind: 'service' | 'product' | 'custom';
+  name: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;  // quantity * unit_price
+}
+```
+
+### 5.8 SaleDiscount (할인)
+```typescript
+interface SaleDiscount {
+  id: number;
+  sale_id: number;
+  discount_type: 'percent' | 'amount';
+  value: number;  // percent: 0~100, amount: 원
+  reason: string | null;
+}
+```
+
+### 5.9 Payment (결제)
+```typescript
+interface Payment {
+  id: number;
+  sale_id: number;
+  method: 'cash' | 'card' | 'transfer' | 'stored_value' | 'giftcard' | 'other';
+  amount: number;
+  paid_at: string;
+}
+```
+
+### 5.10 StoredValueAccount (정액권 잔액)
+```typescript
+interface StoredValueAccount {
+  id: number;
+  tenant_id: number;
+  customer_id: number;
+  balance: number;
+}
+```
+
+### 5.11 StoredValueTransaction (정액권 원장)
+```typescript
+interface StoredValueTransaction {
+  id: number;
+  account_id: number;
+  sale_id: number | null;
+  payment_id: number | null;
+  tx_type: 'topup' | 'redeem' | 'adjust' | 'refund';
+  amount: number;  // +충전, -차감
+  memo: string | null;
+}
+```
+
+---
+
+## 6. API 요약
+
+### 6.1 인증
+- `POST /api/auth/sign_in` - 로그인
+- `DELETE /api/auth/sign_out` - 로그아웃
+- `GET /api/auth/me` - 현재 사용자
+
+### 6.2 기초 데이터
+- `GET/POST /api/customers` - 고객 목록/생성
+- `GET /api/users` - 직원 목록
+- `GET/POST /api/catalog_categories` - 카테고리
+- `GET/POST/PUT /api/catalog_items` - 시술/상품
+
+### 6.3 거래 (핵심)
+- `GET /api/sales` - 거래 목록
+- `POST /api/sales` - 거래 생성 (nested: items, discount, payments)
+- `GET /api/sales/:id` - 거래 상세
+- `PUT /api/sales/:id/void` - 거래 취소
+
+### 6.4 정액권
+- `GET /api/stored_value_accounts/customer/:id` - 고객 정액권 잔액
+
+### 6.5 리포트
+- `GET /api/reports/daily` - 일별 리포트
+- `GET /api/reports/monthly` - 월별 리포트
+- `GET /api/reports/by_staff` - 디자이너별 매출
+- `GET /api/reports/by_method` - 결제수단별 매출
+
+---
+
+## 7. 비즈니스 로직
+
+### 7.1 거래 생성 프로세스
+
+```
+1. 요청 검증
+   ├── customer_id 존재 확인
+   ├── staff_id 존재 확인 (active 사용자)
+   ├── items 1개 이상 확인
+   └── 결제 합계 == 최종 금액 확인
+
+2. 트랜잭션 시작
+   ├── Sale 생성
+   ├── SaleItem 일괄 생성
+   ├── SaleDiscount 생성 (있는 경우)
+   ├── Payment 일괄 생성
+   ├── StoredValue 처리 (method='stored_value'인 경우)
+   ├── Customer.first_visit_at 설정 (null인 경우)
+   └── AuditLog 생성
+
+3. 트랜잭션 커밋
+```
+
+### 7.2 할인 계산
+
+```typescript
+function calculateDiscountAmount(subtotal: number, discount: SaleDiscount): number {
+  if (discount.discount_type === 'percent') {
+    return Math.floor(subtotal * discount.value / 100);
+  } else {
+    return discount.value;
+  }
+}
+```
+
+### 7.3 정액권 소진
+
+```
+1. 결제 시 method='stored_value'이면:
+   - 잔액 확인 (balance >= amount)
+   - Payment 생성
+   - StoredValueTransaction 생성 (tx_type='redeem', amount=-payment.amount)
+   - StoredValueAccount.balance 차감
+
+2. 거래 취소 시 stored_value 결제가 있었다면:
+   - StoredValueTransaction 생성 (tx_type='refund', amount=+원래금액)
+   - StoredValueAccount.balance 복구
+```
+
+---
+
+## 8. 제외 범위 (Out of Scope)
 
 다음 기능은 MVP에서 제외:
 
 - ❌ 순이익 계산
 - ❌ 급여/인센티브 자동 계산
-- ❌ 재고 원가 평가 (평균법/선입선출)
-- ❌ KPI/대시보드
+- ❌ 재고 관리
+- ❌ KPI 대시보드
 - ❌ 자동 마케팅/메시지
 - ❌ 예약 관리
-- ❌ 멀티 매장 통합 관리
+- ❌ 정액권 판매/충전 (수동 조정으로 처리)
 
 ---
 
-## 성공 지표
+## 9. 성능 요구사항
 
-1. 모든 거래 유형(시술, 상품, 정액권, 포인트)을 정확히 기록
-2. 거래 시점의 가격 정보가 스냅샷으로 보존
-3. 원장 합계와 잔액이 일치
-4. 확장 가능한 데이터 구조 확보
+### 9.1 응답 시간
+- API 응답: 95% < 500ms
+- 페이지 로드: 95% < 2초
+- 리포트 조회: 95% < 1초
+
+### 9.2 동시 사용자
+- MVP: 5명 동시 접속
+- 목표: 20명 동시 접속
+
+### 9.3 데이터 규모
+- 일 평균 거래: 30건
+- 월 평균 거래: 900건
+- 연간 거래: 10,000건
+
+---
+
+## 10. 성공 지표
+
+1. 거래 입력부터 저장까지 30초 이내 완료
+2. 모든 거래 유형(시술, 상품, 정액권)을 정확히 기록
+3. 거래 시점의 가격 정보가 스냅샷으로 보존
+4. 리포트 집계와 실제 거래 합계 일치
+5. 정액권 원장 합계와 잔액 일치

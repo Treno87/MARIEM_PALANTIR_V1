@@ -1,0 +1,78 @@
+{
+	// Editor
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "explicit",
+		"source.organizeImports": "explicit"
+	},
+	"editor.tabSize": 2,
+	"editor.insertSpaces": false,
+
+	// Files
+	"files.eol": "\n",
+	"files.trimTrailingWhitespace": true,
+	"files.insertFinalNewline": true,
+	"files.exclude": {
+		"**/node_modules": true,
+		"**/.git": true,
+		"**/dist": true,
+		"**/tmp": true,
+		"**/log": true
+	},
+
+	// TypeScript
+	"typescript.preferences.importModuleSpecifier": "relative",
+	"typescript.suggest.autoImports": true,
+	"typescript.updateImportsOnFileMove.enabled": "always",
+
+	// ESLint
+	"eslint.workingDirectories": ["frontend"],
+	"eslint.validate": [
+		"javascript",
+		"javascriptreact",
+		"typescript",
+		"typescriptreact"
+	],
+
+	// Prettier
+	"prettier.configPath": "./frontend/.prettierrc",
+	"[typescript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[typescriptreact]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[css]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+
+	// Ruby / Rails
+	"[ruby]": {
+		"editor.defaultFormatter": "Shopify.ruby-lsp",
+		"editor.formatOnSave": true
+	},
+	"rubyLsp.formatter": "rubocop",
+
+	// Tailwind CSS
+	"tailwindCSS.experimental.classRegex": [
+		["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+		["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+	],
+
+	// Search
+	"search.exclude": {
+		"**/node_modules": true,
+		"**/dist": true,
+		"**/tmp": true,
+		"**/log": true,
+		"**/.git": true
+	},
+
+	// Terminal
+	"terminal.integrated.defaultProfile.linux": "bash",
+	"terminal.integrated.fontSize": 14
+}

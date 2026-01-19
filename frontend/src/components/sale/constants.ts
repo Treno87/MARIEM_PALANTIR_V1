@@ -93,6 +93,27 @@ export const serviceCategories: ServiceCategory[] = [
 			{ id: "s17", name: "셋팅드라이", price: 25000 },
 		],
 	},
+	{
+		id: "cat6",
+		name: "패키지",
+		color: "#ff7eb3",
+		items: [
+			{ id: "s18", name: "커트+염색", price: 100000 },
+			{ id: "s19", name: "커트+펌", price: 120000 },
+			{ id: "s20", name: "염색+펌", price: 170000 },
+			{ id: "s21", name: "풀케어(커트+염색+펌)", price: 200000 },
+		],
+	},
+	{
+		id: "cat7",
+		name: "추가금",
+		color: "#6b7280",
+		items: [
+			{ id: "s22", name: "긴머리추가", price: 10000 },
+			{ id: "s23", name: "특수약제", price: 20000 },
+			{ id: "s24", name: "시간외추가", price: 15000 },
+		],
+	},
 ];
 
 export const productCategories: ProductCategory[] = [
@@ -193,6 +214,8 @@ export const itemPaymentMethods = [
 	{ id: "card", label: "카드", color: "#0073ea" },
 	{ id: "cash", label: "현금", color: "#00c875" },
 	{ id: "transfer", label: "이체", color: "#fdab3d" },
+	{ id: "npay", label: "Npay", color: "#1ec800" },
 	{ id: "stored_value", label: "정액권", color: "#a25ddc" },
 	{ id: "membership", label: "정기권", color: "#e2445c" },
+	{ id: "other", label: "기타", color: "#6b7280" },
 ] as const;

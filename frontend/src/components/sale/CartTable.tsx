@@ -1,13 +1,7 @@
 import type { ReactElement } from "react";
-import {
-	discountEvents,
-	itemPaymentMethods,
-	membershipOptions,
-	productCategories,
-	serviceCategories,
-	storedValueOptions,
-} from "./constants";
-import type { CartItem, DiscountEvent, ItemPaymentMethod } from "./types";
+import { useCatalog } from "../../contexts/CatalogContext";
+import { itemPaymentMethods } from "./constants";
+import type { CartItem, ItemPaymentMethod } from "./types";
 
 interface CartTableProps {
 	cart: CartItem[];
@@ -19,30 +13,6 @@ interface CartTableProps {
 	onUpdateEvent: (id: string, eventId: string | undefined) => void;
 }
 
-function getCategoryColor(itemId: string): string {
-	if (storedValueOptions.find((i) => i.id === itemId)) return "#00c875";
-	if (membershipOptions.find((i) => i.id === itemId)) return "#a25ddc";
-
-	for (const cat of serviceCategories) {
-		if (cat.items.find((i) => i.id === itemId)) return cat.color;
-	}
-
-	for (const cat of productCategories) {
-		for (const brand of cat.brands) {
-			if (brand.items.find((i) => i.id === itemId)) return cat.color;
-		}
-	}
-
-	return "#6b7280";
-}
-
-function getApplicableEvents(itemId: string): DiscountEvent[] {
-	return discountEvents.filter((event) => {
-		if (!event.applicableTo) return true;
-		return event.applicableTo.includes(itemId);
-	});
-}
-
 export function CartTable({
 	cart,
 	displayedStoredValue,
@@ -52,21 +22,46 @@ export function CartTable({
 	onUpdatePaymentMethod,
 	onUpdateEvent,
 }: CartTableProps): ReactElement | null {
+	const {
+		serviceCategories,
+		productCategories,
+		storedValueOptions,
+		membershipOptions,
+		discountEvents,
+	} = useCatalog();
+
 	if (cart.length === 0) return null;
+
+	const getCategoryColor = (itemId: string) => {
+		if (storedValueOptions.find((i) => i.id === itemId)) return "#00c875";
+		if (membershipOptions.find((i) => i.id === itemId)) return "#a25ddc";
+
+		for (const cat of serviceCategories) {
+			if (cat.items.find((i) => i.id === itemId)) return cat.color;
+		}
+
+		for (const cat of productCategories) {
+			for (const brand of cat.brands) {
+				if (brand.items.find((i) => i.id === itemId)) return cat.color;
+			}
+		}
+
+		return "#6b7280";
+	};
+
+	const getApplicableEvents = (itemId: string) =>
+		discountEvents.filter((event) => !event.applicableTo || event.applicableTo.includes(itemId));
 
 	// 정액권/정기권 사용 금액 계산 (이미 선택된 항목들의 합계)
 	const usedStoredValue = cart
 		.filter((item) => item.paymentMethod === "stored_value")
 		.reduce((sum, item) => sum + item.finalPrice, 0);
 
-	const usedMembershipCount = cart.filter(
-		(item) => item.paymentMethod === "membership",
-	).length;
+	const usedMembershipCount = cart.filter((item) => item.paymentMethod === "membership").length;
 
 	// 잔여 가용 금액/회차
 	const availableStoredValue = displayedStoredValue - usedStoredValue;
-	const availableMembershipCount =
-		displayedMembershipRemaining - usedMembershipCount;
+	const availableMembershipCount = displayedMembershipRemaining - usedMembershipCount;
 
 	return (
 		<div className="border-t border-neutral-200 px-6 py-4">
@@ -91,22 +86,18 @@ export function CartTable({
 							// 정액권 버튼 활성화 조건: 잔액이 있거나 이미 이 항목에서 사용 중
 							const canUseStoredValue =
 								!isTopup &&
-								(availableStoredValue >= item.finalPrice ||
-									item.paymentMethod === "stored_value");
+								(availableStoredValue >= item.finalPrice || item.paymentMethod === "stored_value");
 
 							// 정기권 버튼 활성화 조건: 정기권 대상 항목 + 회차 남음 또는 이미 사용 중
 							const canUseMembership =
 								!isTopup &&
 								item.membershipEligible === true &&
-								(availableMembershipCount > 0 ||
-									item.paymentMethod === "membership");
+								(availableMembershipCount > 0 || item.paymentMethod === "membership");
 
 							return (
 								<tr
 									key={item.id}
-									className={
-										idx !== cart.length - 1 ? "border-b border-neutral-100" : ""
-									}
+									className={idx !== cart.length - 1 ? "border-b border-neutral-100" : ""}
 								>
 									{/* 항목명 + 수량 */}
 									<td className="px-4 py-3">
@@ -127,9 +118,7 @@ export function CartTable({
 												>
 													-
 												</button>
-												<span className="w-4 text-center text-xs font-medium">
-													{item.quantity}
-												</span>
+												<span className="w-4 text-center text-xs font-medium">{item.quantity}</span>
 												<button
 													onClick={() => {
 														onUpdateQuantity(item.id, 1);
@@ -176,12 +165,9 @@ export function CartTable({
 													const isMembership = method.id === "membership";
 
 													// 정액권/정기권은 조건부 표시 (early return)
-													if (isStoredValue && displayedStoredValue <= 0)
-														return null;
-													if (isMembership && item.membershipEligible !== true)
-														return null;
-													if (isMembership && displayedMembershipRemaining <= 0)
-														return null;
+													if (isStoredValue && displayedStoredValue <= 0) return null;
+													if (isMembership && item.membershipEligible !== true) return null;
+													if (isMembership && displayedMembershipRemaining <= 0) return null;
 
 													const disabled =
 														(isStoredValue && !canUseStoredValue) ||
@@ -191,10 +177,7 @@ export function CartTable({
 														<button
 															key={method.id}
 															onClick={() => {
-																onUpdatePaymentMethod(
-																	item.id,
-																	method.id as ItemPaymentMethod,
-																);
+																onUpdatePaymentMethod(item.id, method.id as ItemPaymentMethod);
 															}}
 															disabled={disabled}
 															className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
@@ -202,11 +185,7 @@ export function CartTable({
 																	? "text-white"
 																	: "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
 															} ${disabled ? "cursor-not-allowed opacity-30" : ""}`}
-															style={
-																isSelected
-																	? { backgroundColor: method.color }
-																	: {}
-															}
+															style={isSelected ? { backgroundColor: method.color } : {}}
 														>
 															{method.label}
 														</button>
@@ -230,9 +209,7 @@ export function CartTable({
 									{/* 최종 금액 */}
 									<td className="px-4 py-3 text-right">
 										{item.paymentMethod === "membership" ? (
-											<span className="text-sm font-semibold text-[#e2445c]">
-												1회
-											</span>
+											<span className="text-sm font-semibold text-[#e2445c]">1회</span>
 										) : (
 											<span className="text-sm font-semibold text-neutral-700">
 												{item.finalPrice.toLocaleString()}원
@@ -248,9 +225,7 @@ export function CartTable({
 											}}
 											className="flex h-5 w-5 items-center justify-center rounded text-neutral-400 hover:bg-red-50 hover:text-[#e2445c]"
 										>
-											<span className="material-symbols-outlined text-sm">
-												close
-											</span>
+											<span className="material-symbols-outlined text-sm">close</span>
 										</button>
 									</td>
 								</tr>

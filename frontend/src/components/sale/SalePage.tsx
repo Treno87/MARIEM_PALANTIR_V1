@@ -1,18 +1,12 @@
 import type { ReactElement } from "react";
 import { useCallback, useState } from "react";
+import { useCatalog } from "../../contexts/CatalogContext";
 import { useStaff } from "../../contexts/StaffContext";
 import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { CartTable } from "./CartTable";
 import { CatalogTabs } from "./CatalogTabs";
 import { CustomerSelect } from "./CustomerSelect";
-import {
-	discountEvents,
-	initialCustomers,
-	membershipOptions,
-	productCategories,
-	serviceCategories,
-	storedValueOptions,
-} from "./constants";
+import { initialCustomers } from "./constants";
 import { PaymentSummary } from "./PaymentSummary";
 import { SaleFooter } from "./SaleFooter";
 import { StaffSelect } from "./StaffSelect";
@@ -20,6 +14,13 @@ import type { CartItem, Customer, ItemPaymentMethod } from "./types";
 
 export default function SalePage(): ReactElement {
 	const { salesStaff } = useStaff();
+	const {
+		serviceCategories,
+		productCategories,
+		storedValueOptions,
+		membershipOptions,
+		discountEvents,
+	} = useCatalog();
 	const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
 	const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 	const [selectedDesignerId, setSelectedDesignerId] = useState<string>("1");

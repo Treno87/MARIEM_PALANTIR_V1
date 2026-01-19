@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { discountEvents as initialEvents } from "../sale/constants";
+import { useCatalog } from "../../contexts/CatalogContext";
 import type { DiscountEvent } from "../sale/types";
 
 export default function EventsPage() {
-	const [events, setEvents] = useState<DiscountEvent[]>(initialEvents);
+	const { discountEvents, addDiscountEvent, updateDiscountEvent, deleteDiscountEvent } =
+		useCatalog();
+
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingEvent, setEditingEvent] = useState<DiscountEvent | null>(null);
 	const [formData, setFormData] = useState({
@@ -41,54 +43,45 @@ export default function EventsPage() {
 		if (isNaN(discountValue)) return;
 
 		if (editingEvent) {
-			setEvents((prev) =>
-				prev.map((e) =>
-					e.id === editingEvent.id
-						? {
-								...e,
-								name: formData.name,
-								discountType: formData.discountType,
-								discountValue,
-							}
-						: e,
-				),
-			);
-		} else {
-			const newEvent: DiscountEvent = {
-				id: `ev-${Date.now()}`,
+			updateDiscountEvent(editingEvent.id, {
 				name: formData.name,
 				discountType: formData.discountType,
 				discountValue,
-			};
-			setEvents((prev) => [...prev, newEvent]);
+			});
+		} else {
+			addDiscountEvent({
+				name: formData.name,
+				discountType: formData.discountType,
+				discountValue,
+			});
 		}
 		closeModal();
 	};
 
 	const handleDelete = (id: string) => {
 		if (confirm("이 이벤트를 삭제하시겠습니까?")) {
-			setEvents((prev) => prev.filter((e) => e.id !== id));
+			deleteDiscountEvent(id);
 		}
 	};
 
-	const formatDiscount = (event: DiscountEvent) => {
+	const formatDiscount = (event: DiscountEvent): string => {
 		if (event.discountType === "percent") {
-			return `${event.discountValue}% 할인`;
+			return `${String(event.discountValue)}% 할인`;
 		}
 		return `${event.discountValue.toLocaleString()}원 할인`;
 	};
 
 	return (
-		<div className="flex-1 p-8 overflow-y-auto">
+		<div className="flex-1 overflow-y-auto p-8">
 			{/* Header */}
-			<div className="flex items-center justify-between mb-8">
+			<div className="mb-8 flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-bold text-neutral-800">이벤트 관리</h1>
-					<p className="text-neutral-500 mt-1">할인 이벤트를 관리합니다</p>
+					<p className="mt-1 text-neutral-500">할인 이벤트를 관리합니다</p>
 				</div>
 				<button
 					onClick={openAddModal}
-					className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white rounded-xl font-bold hover:bg-primary-600 transition-colors"
+					className="bg-primary-500 hover:bg-primary-600 flex items-center gap-2 rounded-xl px-4 py-2.5 font-bold text-white transition-colors"
 				>
 					<span className="material-symbols-outlined">add</span>
 					이벤트 추가
@@ -96,24 +89,22 @@ export default function EventsPage() {
 			</div>
 
 			{/* Events Grid */}
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-				{events.map((event) => (
+			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+				{discountEvents.map((event) => (
 					<div
 						key={event.id}
-						className="bg-white rounded-2xl border border-neutral-200 p-6 hover:shadow-lg transition-shadow"
+						className="rounded-2xl border border-neutral-200 bg-white p-6 transition-shadow hover:shadow-lg"
 					>
 						<div className="flex items-start justify-between">
 							<div className="flex items-center gap-4">
-								<div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
-									<span className="material-symbols-outlined text-orange-600">
-										local_offer
-									</span>
+								<div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100">
+									<span className="material-symbols-outlined text-orange-600">local_offer</span>
 								</div>
 								<div>
 									<h3 className="font-bold text-neutral-800">{event.name}</h3>
-									<p className="text-sm mt-1">
+									<p className="mt-1 text-sm">
 										<span
-											className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${
+											className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${
 												event.discountType === "percent"
 													? "bg-blue-100 text-blue-700"
 													: "bg-green-100 text-green-700"
@@ -123,28 +114,26 @@ export default function EventsPage() {
 										</span>
 									</p>
 									{event.applicableTo && event.applicableTo.length > 0 && (
-										<p className="text-xs text-neutral-500 mt-2">
-											특정 시술에만 적용
-										</p>
+										<p className="mt-2 text-xs text-neutral-500">특정 시술에만 적용</p>
 									)}
 								</div>
 							</div>
 							<div className="flex gap-1">
 								<button
-									onClick={() => openEditModal(event)}
-									className="p-2 text-neutral-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg transition-colors"
+									onClick={() => {
+										openEditModal(event);
+									}}
+									className="hover:bg-primary-50 hover:text-primary-500 rounded-lg p-2 text-neutral-400 transition-colors"
 								>
-									<span className="material-symbols-outlined text-xl">
-										edit
-									</span>
+									<span className="material-symbols-outlined text-xl">edit</span>
 								</button>
 								<button
-									onClick={() => handleDelete(event.id)}
-									className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+									onClick={() => {
+										handleDelete(event.id);
+									}}
+									className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-500"
 								>
-									<span className="material-symbols-outlined text-xl">
-										delete
-									</span>
+									<span className="material-symbols-outlined text-xl">delete</span>
 								</button>
 							</div>
 						</div>
@@ -152,15 +141,15 @@ export default function EventsPage() {
 				))}
 			</div>
 
-			{events.length === 0 && (
-				<div className="text-center py-16">
-					<span className="material-symbols-outlined text-6xl text-neutral-300 mb-4">
+			{discountEvents.length === 0 && (
+				<div className="py-16 text-center">
+					<span className="material-symbols-outlined mb-4 text-6xl text-neutral-300">
 						local_offer
 					</span>
 					<p className="text-neutral-400">등록된 이벤트가 없습니다</p>
 					<button
 						onClick={openAddModal}
-						className="mt-4 text-primary-500 font-bold hover:underline"
+						className="text-primary-500 mt-4 font-bold hover:underline"
 					>
 						첫 번째 이벤트 추가하기
 					</button>
@@ -169,62 +158,58 @@ export default function EventsPage() {
 
 			{/* Modal */}
 			{isModalOpen && (
-				<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-					<div className="bg-white rounded-2xl w-full max-w-md mx-4 overflow-hidden">
-						<div className="p-6 border-b border-neutral-200">
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+					<div className="mx-4 w-full max-w-md overflow-hidden rounded-2xl bg-white">
+						<div className="border-b border-neutral-200 p-6">
 							<h2 className="text-xl font-bold text-neutral-800">
 								{editingEvent ? "이벤트 수정" : "이벤트 추가"}
 							</h2>
 						</div>
-						<div className="p-6 space-y-6">
+						<div className="space-y-6 p-6">
 							{/* Name Input */}
 							<div>
-								<label className="block text-sm font-bold text-neutral-700 mb-2">
-									이벤트명
-								</label>
+								<label className="mb-2 block text-sm font-bold text-neutral-700">이벤트명</label>
 								<input
 									type="text"
 									value={formData.name}
-									onChange={(e) =>
-										setFormData((prev) => ({ ...prev, name: e.target.value }))
-									}
+									onChange={(e) => {
+										setFormData((prev) => ({ ...prev, name: e.target.value }));
+									}}
 									placeholder="여름특가, 신규고객 등"
-									className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+									className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
 								/>
 							</div>
 
 							{/* Discount Type */}
 							<div>
-								<label className="block text-sm font-bold text-neutral-700 mb-2">
-									할인 유형
-								</label>
+								<label className="mb-2 block text-sm font-bold text-neutral-700">할인 유형</label>
 								<div className="flex gap-3">
 									<button
-										onClick={() =>
+										onClick={() => {
 											setFormData((prev) => ({
 												...prev,
 												discountType: "percent",
-											}))
-										}
-										className={`flex-1 px-4 py-3 rounded-xl border font-medium transition-colors ${
+											}));
+										}}
+										className={`flex-1 rounded-xl border px-4 py-3 font-medium transition-colors ${
 											formData.discountType === "percent"
-												? "bg-primary-500 text-white border-primary-500"
-												: "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"
+												? "border-primary-500 bg-primary-500 text-white"
+												: "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
 										}`}
 									>
 										% 할인
 									</button>
 									<button
-										onClick={() =>
+										onClick={() => {
 											setFormData((prev) => ({
 												...prev,
 												discountType: "amount",
-											}))
-										}
-										className={`flex-1 px-4 py-3 rounded-xl border font-medium transition-colors ${
+											}));
+										}}
+										className={`flex-1 rounded-xl border px-4 py-3 font-medium transition-colors ${
 											formData.discountType === "amount"
-												? "bg-primary-500 text-white border-primary-500"
-												: "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"
+												? "border-primary-500 bg-primary-500 text-white"
+												: "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
 										}`}
 									>
 										금액 할인
@@ -234,43 +219,37 @@ export default function EventsPage() {
 
 							{/* Discount Value */}
 							<div>
-								<label className="block text-sm font-bold text-neutral-700 mb-2">
-									{formData.discountType === "percent"
-										? "할인율 (%)"
-										: "할인 금액 (원)"}
+								<label className="mb-2 block text-sm font-bold text-neutral-700">
+									{formData.discountType === "percent" ? "할인율 (%)" : "할인 금액 (원)"}
 								</label>
 								<input
 									type="number"
 									value={formData.discountValue}
-									onChange={(e) =>
+									onChange={(e) => {
 										setFormData((prev) => ({
 											...prev,
 											discountValue: e.target.value,
-										}))
-									}
-									placeholder={
-										formData.discountType === "percent" ? "10" : "5000"
-									}
-									className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+										}));
+									}}
+									placeholder={formData.discountType === "percent" ? "10" : "5000"}
+									className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
 								/>
 								{formData.discountType === "percent" && (
-									<p className="text-xs text-neutral-500 mt-1">
-										1~100 사이의 값을 입력하세요
-									</p>
+									<p className="mt-1 text-xs text-neutral-500">1~100 사이의 값을 입력하세요</p>
 								)}
 							</div>
 						</div>
-						<div className="p-6 bg-neutral-50 flex gap-3 justify-end">
+						<div className="flex justify-end gap-3 bg-neutral-50 p-6">
 							<button
 								onClick={closeModal}
-								className="px-4 py-2.5 text-neutral-600 font-bold hover:bg-neutral-200 rounded-xl transition-colors"
+								className="rounded-xl px-4 py-2.5 font-bold text-neutral-600 transition-colors hover:bg-neutral-200"
 							>
 								취소
 							</button>
 							<button
 								onClick={handleSubmit}
 								disabled={!formData.name.trim() || !formData.discountValue}
-								className="px-4 py-2.5 bg-primary-500 text-white font-bold rounded-xl hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 							>
 								{editingEvent ? "수정" : "추가"}
 							</button>

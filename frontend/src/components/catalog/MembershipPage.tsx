@@ -1,23 +1,24 @@
 import { useState } from "react";
-import {
-	membershipOptions as initialMembership,
-	storedValueOptions as initialStoredValue,
-} from "../sale/constants";
+import { useCatalog } from "../../contexts/CatalogContext";
 import type { MembershipOption, StoredValueOption } from "../sale/types";
 
 type ActiveTab = "stored_value" | "membership";
 
 export default function MembershipPage() {
-	const [activeTab, setActiveTab] = useState<ActiveTab>("stored_value");
-	const [storedValueOptions, setStoredValueOptions] =
-		useState<StoredValueOption[]>(initialStoredValue);
-	const [membershipOptions, setMembershipOptions] =
-		useState<MembershipOption[]>(initialMembership);
+	const {
+		storedValueOptions,
+		addStoredValueOption,
+		updateStoredValueOption,
+		deleteStoredValueOption,
+		membershipOptions,
+		addMembershipOption,
+		updateMembershipOption,
+		deleteMembershipOption,
+	} = useCatalog();
 
+	const [activeTab, setActiveTab] = useState<ActiveTab>("stored_value");
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [editingItem, setEditingItem] = useState<
-		StoredValueOption | MembershipOption | null
-	>(null);
+	const [editingItem, setEditingItem] = useState<StoredValueOption | MembershipOption | null>(null);
 
 	const [storedValueForm, setStoredValueForm] = useState({
 		name: "",
@@ -69,21 +70,17 @@ export default function MembershipPage() {
 		if (isNaN(priceNum) || isNaN(valueNum)) return;
 
 		if (editingItem) {
-			setStoredValueOptions((prev) =>
-				prev.map((sv) =>
-					sv.id === editingItem.id
-						? { ...sv, name, price: priceNum, value: valueNum }
-						: sv,
-				),
-			);
-		} else {
-			const newItem: StoredValueOption = {
-				id: `sv-${Date.now()}`,
+			updateStoredValueOption(editingItem.id, {
 				name,
 				price: priceNum,
 				value: valueNum,
-			};
-			setStoredValueOptions((prev) => [...prev, newItem]);
+			});
+		} else {
+			addStoredValueOption({
+				name,
+				price: priceNum,
+				value: valueNum,
+			});
 		}
 		setIsModalOpen(false);
 	};
@@ -97,21 +94,17 @@ export default function MembershipPage() {
 		if (isNaN(priceNum) || isNaN(countNum)) return;
 
 		if (editingItem) {
-			setMembershipOptions((prev) =>
-				prev.map((mb) =>
-					mb.id === editingItem.id
-						? { ...mb, name, price: priceNum, count: countNum }
-						: mb,
-				),
-			);
-		} else {
-			const newItem: MembershipOption = {
-				id: `mb-${Date.now()}`,
+			updateMembershipOption(editingItem.id, {
 				name,
 				price: priceNum,
 				count: countNum,
-			};
-			setMembershipOptions((prev) => [...prev, newItem]);
+			});
+		} else {
+			addMembershipOption({
+				name,
+				price: priceNum,
+				count: countNum,
+			});
 		}
 		setIsModalOpen(false);
 	};
@@ -119,26 +112,24 @@ export default function MembershipPage() {
 	const handleDelete = (id: string) => {
 		if (confirm("이 옵션을 삭제하시겠습니까?")) {
 			if (activeTab === "stored_value") {
-				setStoredValueOptions((prev) => prev.filter((sv) => sv.id !== id));
+				deleteStoredValueOption(id);
 			} else {
-				setMembershipOptions((prev) => prev.filter((mb) => mb.id !== id));
+				deleteMembershipOption(id);
 			}
 		}
 	};
 
 	return (
-		<div className="flex-1 p-8 overflow-y-auto">
+		<div className="flex-1 overflow-y-auto p-8">
 			{/* Header */}
-			<div className="flex items-center justify-between mb-8">
+			<div className="mb-8 flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-bold text-neutral-800">멤버쉽 관리</h1>
-					<p className="text-neutral-500 mt-1">
-						정액권과 정기권 옵션을 관리합니다
-					</p>
+					<p className="mt-1 text-neutral-500">정액권과 정기권 옵션을 관리합니다</p>
 				</div>
 				<button
 					onClick={openAddModal}
-					className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white rounded-xl font-bold hover:bg-primary-600 transition-colors"
+					className="bg-primary-500 hover:bg-primary-600 flex items-center gap-2 rounded-xl px-4 py-2.5 font-bold text-white transition-colors"
 				>
 					<span className="material-symbols-outlined">add</span>
 					{activeTab === "stored_value" ? "정액권 추가" : "정기권 추가"}
@@ -146,28 +137,30 @@ export default function MembershipPage() {
 			</div>
 
 			{/* Tabs */}
-			<div className="flex gap-2 mb-6">
+			<div className="mb-6 flex gap-2">
 				<button
-					onClick={() => setActiveTab("stored_value")}
-					className={`px-4 py-2.5 rounded-xl font-bold transition-colors ${
+					onClick={() => {
+						setActiveTab("stored_value");
+					}}
+					className={`rounded-xl px-4 py-2.5 font-bold transition-colors ${
 						activeTab === "stored_value"
 							? "bg-primary-500 text-white"
-							: "bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50"
+							: "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
 					}`}
 				>
 					<span className="flex items-center gap-2">
-						<span className="material-symbols-outlined">
-							account_balance_wallet
-						</span>
+						<span className="material-symbols-outlined">account_balance_wallet</span>
 						정액권 ({storedValueOptions.length})
 					</span>
 				</button>
 				<button
-					onClick={() => setActiveTab("membership")}
-					className={`px-4 py-2.5 rounded-xl font-bold transition-colors ${
+					onClick={() => {
+						setActiveTab("membership");
+					}}
+					className={`rounded-xl px-4 py-2.5 font-bold transition-colors ${
 						activeTab === "membership"
 							? "bg-primary-500 text-white"
-							: "bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50"
+							: "border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
 					}`}
 				>
 					<span className="flex items-center gap-2">
@@ -178,35 +171,30 @@ export default function MembershipPage() {
 			</div>
 
 			{/* Content */}
-			<div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+			<div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
 				{activeTab === "stored_value" ? (
 					<div className="divide-y divide-neutral-100">
 						{storedValueOptions.map((option) => (
 							<div
 								key={option.id}
-								className="p-6 flex items-center justify-between hover:bg-neutral-50"
+								className="flex items-center justify-between p-6 hover:bg-neutral-50"
 							>
 								<div className="flex items-center gap-4">
-									<div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
+									<div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100">
 										<span className="material-symbols-outlined text-purple-600">
 											account_balance_wallet
 										</span>
 									</div>
 									<div>
-										<h3 className="font-bold text-neutral-800">
-											{option.name}
-										</h3>
-										<div className="flex gap-4 mt-1 text-sm text-neutral-500">
+										<h3 className="font-bold text-neutral-800">{option.name}</h3>
+										<div className="mt-1 flex gap-4 text-sm text-neutral-500">
 											<span>판매가: {option.price.toLocaleString()}원</span>
 											<span>충전액: {option.value.toLocaleString()}원</span>
 											{option.value > option.price && (
-												<span className="text-green-600 font-medium">
+												<span className="font-medium text-green-600">
 													(+
-													{(
-														((option.value - option.price) / option.price) *
-														100
-													).toFixed(0)}
-													% 보너스)
+													{(((option.value - option.price) / option.price) * 100).toFixed(0)}%
+													보너스)
 												</span>
 											)}
 										</div>
@@ -214,28 +202,26 @@ export default function MembershipPage() {
 								</div>
 								<div className="flex gap-1">
 									<button
-										onClick={() => openEditModal(option)}
-										className="p-2 text-neutral-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg transition-colors"
+										onClick={() => {
+											openEditModal(option);
+										}}
+										className="hover:bg-primary-50 hover:text-primary-500 rounded-lg p-2 text-neutral-400 transition-colors"
 									>
-										<span className="material-symbols-outlined text-xl">
-											edit
-										</span>
+										<span className="material-symbols-outlined text-xl">edit</span>
 									</button>
 									<button
-										onClick={() => handleDelete(option.id)}
-										className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+										onClick={() => {
+											handleDelete(option.id);
+										}}
+										className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-500"
 									>
-										<span className="material-symbols-outlined text-xl">
-											delete
-										</span>
+										<span className="material-symbols-outlined text-xl">delete</span>
 									</button>
 								</div>
 							</div>
 						))}
 						{storedValueOptions.length === 0 && (
-							<div className="p-8 text-center text-neutral-400">
-								등록된 정액권이 없습니다
-							</div>
+							<div className="p-8 text-center text-neutral-400">등록된 정액권이 없습니다</div>
 						)}
 					</div>
 				) : (
@@ -243,26 +229,19 @@ export default function MembershipPage() {
 						{membershipOptions.map((option) => (
 							<div
 								key={option.id}
-								className="p-6 flex items-center justify-between hover:bg-neutral-50"
+								className="flex items-center justify-between p-6 hover:bg-neutral-50"
 							>
 								<div className="flex items-center gap-4">
-									<div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center">
-										<span className="material-symbols-outlined text-pink-600">
-											card_membership
-										</span>
+									<div className="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-100">
+										<span className="material-symbols-outlined text-pink-600">card_membership</span>
 									</div>
 									<div>
-										<h3 className="font-bold text-neutral-800">
-											{option.name}
-										</h3>
-										<div className="flex gap-4 mt-1 text-sm text-neutral-500">
+										<h3 className="font-bold text-neutral-800">{option.name}</h3>
+										<div className="mt-1 flex gap-4 text-sm text-neutral-500">
 											<span>판매가: {option.price.toLocaleString()}원</span>
 											<span>횟수: {option.count}회</span>
-											<span className="text-blue-600 font-medium">
-												(회당{" "}
-												{Math.round(
-													option.price / option.count,
-												).toLocaleString()}
+											<span className="font-medium text-blue-600">
+												(회당 {Math.round(option.price / option.count).toLocaleString()}
 												원)
 											</span>
 										</div>
@@ -270,28 +249,26 @@ export default function MembershipPage() {
 								</div>
 								<div className="flex gap-1">
 									<button
-										onClick={() => openEditModal(option)}
-										className="p-2 text-neutral-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg transition-colors"
+										onClick={() => {
+											openEditModal(option);
+										}}
+										className="hover:bg-primary-50 hover:text-primary-500 rounded-lg p-2 text-neutral-400 transition-colors"
 									>
-										<span className="material-symbols-outlined text-xl">
-											edit
-										</span>
+										<span className="material-symbols-outlined text-xl">edit</span>
 									</button>
 									<button
-										onClick={() => handleDelete(option.id)}
-										className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+										onClick={() => {
+											handleDelete(option.id);
+										}}
+										className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-500"
 									>
-										<span className="material-symbols-outlined text-xl">
-											delete
-										</span>
+										<span className="material-symbols-outlined text-xl">delete</span>
 									</button>
 								</div>
 							</div>
 						))}
 						{membershipOptions.length === 0 && (
-							<div className="p-8 text-center text-neutral-400">
-								등록된 정기권이 없습니다
-							</div>
+							<div className="p-8 text-center text-neutral-400">등록된 정기권이 없습니다</div>
 						)}
 					</div>
 				)}
@@ -299,9 +276,9 @@ export default function MembershipPage() {
 
 			{/* Modal */}
 			{isModalOpen && (
-				<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-					<div className="bg-white rounded-2xl w-full max-w-md mx-4 overflow-hidden">
-						<div className="p-6 border-b border-neutral-200">
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+					<div className="mx-4 w-full max-w-md overflow-hidden rounded-2xl bg-white">
+						<div className="border-b border-neutral-200 p-6">
 							<h2 className="text-xl font-bold text-neutral-800">
 								{editingItem
 									? activeTab === "stored_value"
@@ -312,60 +289,54 @@ export default function MembershipPage() {
 										: "정기권 추가"}
 							</h2>
 						</div>
-						<div className="p-6 space-y-6">
+						<div className="space-y-6 p-6">
 							{activeTab === "stored_value" ? (
 								<>
 									<div>
-										<label className="block text-sm font-bold text-neutral-700 mb-2">
-											이름
-										</label>
+										<label className="mb-2 block text-sm font-bold text-neutral-700">이름</label>
 										<input
 											type="text"
 											value={storedValueForm.name}
-											onChange={(e) =>
+											onChange={(e) => {
 												setStoredValueForm((prev) => ({
 													...prev,
 													name: e.target.value,
-												}))
-											}
+												}));
+											}}
 											placeholder="정액권 10만원"
-											className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+											className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
 										/>
 									</div>
 									<div>
-										<label className="block text-sm font-bold text-neutral-700 mb-2">
-											판매가
-										</label>
+										<label className="mb-2 block text-sm font-bold text-neutral-700">판매가</label>
 										<input
 											type="number"
 											value={storedValueForm.price}
-											onChange={(e) =>
+											onChange={(e) => {
 												setStoredValueForm((prev) => ({
 													...prev,
 													price: e.target.value,
-												}))
-											}
+												}));
+											}}
 											placeholder="100000"
-											className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+											className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
 										/>
 									</div>
 									<div>
-										<label className="block text-sm font-bold text-neutral-700 mb-2">
-											충전액
-										</label>
+										<label className="mb-2 block text-sm font-bold text-neutral-700">충전액</label>
 										<input
 											type="number"
 											value={storedValueForm.value}
-											onChange={(e) =>
+											onChange={(e) => {
 												setStoredValueForm((prev) => ({
 													...prev,
 													value: e.target.value,
-												}))
-											}
+												}));
+											}}
 											placeholder="100000"
-											className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+											className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
 										/>
-										<p className="text-xs text-neutral-500 mt-1">
+										<p className="mt-1 text-xs text-neutral-500">
 											판매가보다 높으면 보너스가 적용됩니다
 										</p>
 									</div>
@@ -373,82 +344,74 @@ export default function MembershipPage() {
 							) : (
 								<>
 									<div>
-										<label className="block text-sm font-bold text-neutral-700 mb-2">
-											이름
-										</label>
+										<label className="mb-2 block text-sm font-bold text-neutral-700">이름</label>
 										<input
 											type="text"
 											value={membershipForm.name}
-											onChange={(e) =>
+											onChange={(e) => {
 												setMembershipForm((prev) => ({
 													...prev,
 													name: e.target.value,
-												}))
-											}
+												}));
+											}}
 											placeholder="커트 10회권"
-											className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+											className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
 										/>
 									</div>
 									<div>
-										<label className="block text-sm font-bold text-neutral-700 mb-2">
-											판매가
-										</label>
+										<label className="mb-2 block text-sm font-bold text-neutral-700">판매가</label>
 										<input
 											type="number"
 											value={membershipForm.price}
-											onChange={(e) =>
+											onChange={(e) => {
 												setMembershipForm((prev) => ({
 													...prev,
 													price: e.target.value,
-												}))
-											}
+												}));
+											}}
 											placeholder="200000"
-											className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+											className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
 										/>
 									</div>
 									<div>
-										<label className="block text-sm font-bold text-neutral-700 mb-2">
-											횟수
-										</label>
+										<label className="mb-2 block text-sm font-bold text-neutral-700">횟수</label>
 										<input
 											type="number"
 											value={membershipForm.count}
-											onChange={(e) =>
+											onChange={(e) => {
 												setMembershipForm((prev) => ({
 													...prev,
 													count: e.target.value,
-												}))
-											}
+												}));
+											}}
 											placeholder="10"
-											className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+											className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
 										/>
 									</div>
 								</>
 							)}
 						</div>
-						<div className="p-6 bg-neutral-50 flex gap-3 justify-end">
+						<div className="flex justify-end gap-3 bg-neutral-50 p-6">
 							<button
-								onClick={() => setIsModalOpen(false)}
-								className="px-4 py-2.5 text-neutral-600 font-bold hover:bg-neutral-200 rounded-xl transition-colors"
+								onClick={() => {
+									setIsModalOpen(false);
+								}}
+								className="rounded-xl px-4 py-2.5 font-bold text-neutral-600 transition-colors hover:bg-neutral-200"
 							>
 								취소
 							</button>
 							<button
 								onClick={
-									activeTab === "stored_value"
-										? handleStoredValueSubmit
-										: handleMembershipSubmit
+									activeTab === "stored_value" ? handleStoredValueSubmit : handleMembershipSubmit
 								}
 								disabled={
 									activeTab === "stored_value"
 										? !storedValueForm.name.trim() ||
 											!storedValueForm.price ||
 											!storedValueForm.value
-										: !membershipForm.name.trim() ||
-											!membershipForm.price ||
-											!membershipForm.count
+										: !membershipForm.name.trim() || !membershipForm.price || !membershipForm.count
 								}
-								className="px-4 py-2.5 bg-primary-500 text-white font-bold rounded-xl hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 							>
 								{editingItem ? "수정" : "추가"}
 							</button>

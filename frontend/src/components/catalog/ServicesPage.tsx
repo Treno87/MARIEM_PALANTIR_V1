@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { serviceCategories as initialCategories } from "../sale/constants";
+import { useCatalog } from "../../contexts/CatalogContext";
 import type { ServiceCategory, ServiceItem } from "../sale/types";
 
 const DEFAULT_COLOR = "#00c875";
@@ -15,14 +15,22 @@ const colorOptions = [
 ];
 
 export default function ServicesPage() {
-	const [categories, setCategories] =
-		useState<ServiceCategory[]>(initialCategories);
-	const [selectedCategory, setSelectedCategory] =
-		useState<ServiceCategory | null>(categories[0] || null);
+	const {
+		serviceCategories,
+		addServiceCategory,
+		updateServiceCategory,
+		deleteServiceCategory,
+		addServiceItem,
+		updateServiceItem,
+		deleteServiceItem,
+	} = useCatalog();
+
+	const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | null>(
+		serviceCategories[0] ?? null,
+	);
 	const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 	const [isItemModalOpen, setIsItemModalOpen] = useState(false);
-	const [editingCategory, setEditingCategory] =
-		useState<ServiceCategory | null>(null);
+	const [editingCategory, setEditingCategory] = useState<ServiceCategory | null>(null);
 	const [editingItem, setEditingItem] = useState<ServiceItem | null>(null);
 
 	const [categoryForm, setCategoryForm] = useState({
@@ -52,33 +60,24 @@ export default function ServicesPage() {
 		if (!categoryForm.name.trim()) return;
 
 		if (editingCategory) {
-			setCategories((prev) =>
-				prev.map((c) =>
-					c.id === editingCategory.id
-						? { ...c, name: categoryForm.name, color: categoryForm.color }
-						: c,
-				),
-			);
-		} else {
-			const newCategory: ServiceCategory = {
-				id: `cat-${Date.now()}`,
+			updateServiceCategory(editingCategory.id, {
 				name: categoryForm.name,
 				color: categoryForm.color,
-				items: [],
-			};
-			setCategories((prev) => [...prev, newCategory]);
-			setSelectedCategory(newCategory);
+			});
+		} else {
+			addServiceCategory({
+				name: categoryForm.name,
+				color: categoryForm.color,
+			});
 		}
 		setIsCategoryModalOpen(false);
 	};
 
 	const handleDeleteCategory = (id: string) => {
-		if (
-			confirm("카테고리와 포함된 모든 시술이 삭제됩니다. 계속하시겠습니까?")
-		) {
-			setCategories((prev) => prev.filter((c) => c.id !== id));
+		if (confirm("카테고리와 포함된 모든 시술이 삭제됩니다. 계속하시겠습니까?")) {
+			deleteServiceCategory(id);
 			if (selectedCategory?.id === id) {
-				setSelectedCategory(categories.find((c) => c.id !== id) || null);
+				setSelectedCategory(serviceCategories.find((c) => c.id !== id) ?? null);
 			}
 		}
 	};
@@ -95,7 +94,7 @@ export default function ServicesPage() {
 		setItemForm({
 			name: item.name,
 			price: String(item.price),
-			membershipEligible: item.membershipEligible || false,
+			membershipEligible: item.membershipEligible ?? false,
 		});
 		setIsItemModalOpen(true);
 	};
@@ -107,39 +106,17 @@ export default function ServicesPage() {
 		if (isNaN(price)) return;
 
 		if (editingItem) {
-			setCategories((prev) =>
-				prev.map((c) =>
-					c.id === selectedCategory.id
-						? {
-								...c,
-								items: c.items.map((item) =>
-									item.id === editingItem.id
-										? {
-												...item,
-												name: itemForm.name,
-												price,
-												membershipEligible: itemForm.membershipEligible,
-											}
-										: item,
-								),
-							}
-						: c,
-				),
-			);
-		} else {
-			const newItem: ServiceItem = {
-				id: `s-${Date.now()}`,
+			updateServiceItem(selectedCategory.id, editingItem.id, {
 				name: itemForm.name,
 				price,
 				membershipEligible: itemForm.membershipEligible,
-			};
-			setCategories((prev) =>
-				prev.map((c) =>
-					c.id === selectedCategory.id
-						? { ...c, items: [...c.items, newItem] }
-						: c,
-				),
-			);
+			});
+		} else {
+			addServiceItem(selectedCategory.id, {
+				name: itemForm.name,
+				price,
+				membershipEligible: itemForm.membershipEligible,
+			});
 		}
 		setIsItemModalOpen(false);
 	};
@@ -147,62 +124,51 @@ export default function ServicesPage() {
 	const handleDeleteItem = (itemId: string) => {
 		if (!selectedCategory) return;
 		if (confirm("이 시술을 삭제하시겠습니까?")) {
-			setCategories((prev) =>
-				prev.map((c) =>
-					c.id === selectedCategory.id
-						? { ...c, items: c.items.filter((item) => item.id !== itemId) }
-						: c,
-				),
-			);
+			deleteServiceItem(selectedCategory.id, itemId);
 		}
 	};
 
 	// Update selectedCategory when categories change
-	const currentCategory = categories.find((c) => c.id === selectedCategory?.id);
+	const currentCategory = serviceCategories.find((c) => c.id === selectedCategory?.id);
 
 	return (
-		<div className="flex-1 p-8 overflow-y-auto">
+		<div className="flex-1 overflow-y-auto p-8">
 			{/* Header */}
-			<div className="flex items-center justify-between mb-8">
+			<div className="mb-8 flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-bold text-neutral-800">시술 관리</h1>
-					<p className="text-neutral-500 mt-1">
-						시술 카테고리와 항목을 관리합니다
-					</p>
+					<p className="mt-1 text-neutral-500">시술 카테고리와 항목을 관리합니다</p>
 				</div>
 			</div>
 
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+			<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 				{/* Categories Panel */}
 				<div className="lg:col-span-1">
-					<div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
-						<div className="p-4 border-b border-neutral-200 flex items-center justify-between">
+					<div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+						<div className="flex items-center justify-between border-b border-neutral-200 p-4">
 							<h2 className="font-bold text-neutral-800">카테고리</h2>
 							<button
 								onClick={openAddCategoryModal}
-								className="p-2 text-primary-500 hover:bg-primary-50 rounded-lg transition-colors"
+								className="text-primary-500 hover:bg-primary-50 rounded-lg p-2 transition-colors"
 							>
 								<span className="material-symbols-outlined">add</span>
 							</button>
 						</div>
 						<div className="divide-y divide-neutral-100">
-							{categories.map((cat) => (
+							{serviceCategories.map((cat) => (
 								<button
 									key={cat.id}
-									onClick={() => setSelectedCategory(cat)}
-									className={`w-full p-4 flex items-center justify-between text-left hover:bg-neutral-50 transition-colors ${
+									onClick={() => {
+										setSelectedCategory(cat);
+									}}
+									className={`flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-neutral-50 ${
 										selectedCategory?.id === cat.id ? "bg-primary-50" : ""
 									}`}
 								>
 									<div className="flex items-center gap-3">
-										<span
-											className="w-3 h-3 rounded-full"
-											style={{ backgroundColor: cat.color }}
-										/>
+										<span className="h-3 w-3 rounded-full" style={{ backgroundColor: cat.color }} />
 										<span className="font-medium">{cat.name}</span>
-										<span className="text-sm text-neutral-400">
-											({cat.items.length})
-										</span>
+										<span className="text-sm text-neutral-400">({cat.items.length})</span>
 									</div>
 									<div className="flex gap-1">
 										<span
@@ -210,54 +176,48 @@ export default function ServicesPage() {
 												e.stopPropagation();
 												openEditCategoryModal(cat);
 											}}
-											className="p-1 text-neutral-400 hover:text-primary-500 cursor-pointer"
+											className="hover:text-primary-500 cursor-pointer p-1 text-neutral-400"
 										>
-											<span className="material-symbols-outlined text-lg">
-												edit
-											</span>
+											<span className="material-symbols-outlined text-lg">edit</span>
 										</span>
 										<span
 											onClick={(e) => {
 												e.stopPropagation();
 												handleDeleteCategory(cat.id);
 											}}
-											className="p-1 text-neutral-400 hover:text-red-500 cursor-pointer"
+											className="cursor-pointer p-1 text-neutral-400 hover:text-red-500"
 										>
-											<span className="material-symbols-outlined text-lg">
-												delete
-											</span>
+											<span className="material-symbols-outlined text-lg">delete</span>
 										</span>
 									</div>
 								</button>
 							))}
 						</div>
-						{categories.length === 0 && (
-							<div className="p-8 text-center text-neutral-400">
-								카테고리가 없습니다
-							</div>
+						{serviceCategories.length === 0 && (
+							<div className="p-8 text-center text-neutral-400">카테고리가 없습니다</div>
 						)}
 					</div>
 				</div>
 
 				{/* Items Panel */}
 				<div className="lg:col-span-2">
-					<div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
-						<div className="p-4 border-b border-neutral-200 flex items-center justify-between">
+					<div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+						<div className="flex items-center justify-between border-b border-neutral-200 p-4">
 							<div className="flex items-center gap-3">
 								{currentCategory && (
 									<span
-										className="w-4 h-4 rounded-full"
+										className="h-4 w-4 rounded-full"
 										style={{ backgroundColor: currentCategory.color }}
 									/>
 								)}
 								<h2 className="font-bold text-neutral-800">
-									{currentCategory?.name || "카테고리 선택"} 시술
+									{currentCategory?.name ?? "카테고리 선택"} 시술
 								</h2>
 							</div>
 							{currentCategory && (
 								<button
 									onClick={openAddItemModal}
-									className="flex items-center gap-2 px-3 py-2 bg-primary-500 text-white text-sm font-bold rounded-lg hover:bg-primary-600 transition-colors"
+									className="bg-primary-500 hover:bg-primary-600 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-white transition-colors"
 								>
 									<span className="material-symbols-outlined text-lg">add</span>
 									시술 추가
@@ -269,19 +229,17 @@ export default function ServicesPage() {
 								{currentCategory.items.map((item) => (
 									<div
 										key={item.id}
-										className="p-4 flex items-center justify-between hover:bg-neutral-50"
+										className="flex items-center justify-between p-4 hover:bg-neutral-50"
 									>
 										<div className="flex items-center gap-4">
 											<div>
-												<h3 className="font-medium text-neutral-800">
-													{item.name}
-												</h3>
-												<div className="flex items-center gap-2 mt-1">
+												<h3 className="font-medium text-neutral-800">{item.name}</h3>
+												<div className="mt-1 flex items-center gap-2">
 													<span className="text-sm text-neutral-500">
 														{item.price.toLocaleString()}원
 													</span>
 													{item.membershipEligible && (
-														<span className="px-2 py-0.5 bg-accent-100 text-accent-600 text-xs font-bold rounded">
+														<span className="bg-accent-100 text-accent-600 rounded px-2 py-0.5 text-xs font-bold">
 															정기권 가능
 														</span>
 													)}
@@ -290,34 +248,30 @@ export default function ServicesPage() {
 										</div>
 										<div className="flex gap-1">
 											<button
-												onClick={() => openEditItemModal(item)}
-												className="p-2 text-neutral-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg transition-colors"
+												onClick={() => {
+													openEditItemModal(item);
+												}}
+												className="hover:bg-primary-50 hover:text-primary-500 rounded-lg p-2 text-neutral-400 transition-colors"
 											>
-												<span className="material-symbols-outlined text-xl">
-													edit
-												</span>
+												<span className="material-symbols-outlined text-xl">edit</span>
 											</button>
 											<button
-												onClick={() => handleDeleteItem(item.id)}
-												className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+												onClick={() => {
+													handleDeleteItem(item.id);
+												}}
+												className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-500"
 											>
-												<span className="material-symbols-outlined text-xl">
-													delete
-												</span>
+												<span className="material-symbols-outlined text-xl">delete</span>
 											</button>
 										</div>
 									</div>
 								))}
 								{currentCategory.items.length === 0 && (
-									<div className="p-8 text-center text-neutral-400">
-										등록된 시술이 없습니다
-									</div>
+									<div className="p-8 text-center text-neutral-400">등록된 시술이 없습니다</div>
 								)}
 							</div>
 						) : (
-							<div className="p-8 text-center text-neutral-400">
-								카테고리를 선택하세요
-							</div>
+							<div className="p-8 text-center text-neutral-400">카테고리를 선택하세요</div>
 						)}
 					</div>
 				</div>
@@ -325,45 +279,41 @@ export default function ServicesPage() {
 
 			{/* Category Modal */}
 			{isCategoryModalOpen && (
-				<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-					<div className="bg-white rounded-2xl w-full max-w-md mx-4 overflow-hidden">
-						<div className="p-6 border-b border-neutral-200">
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+					<div className="mx-4 w-full max-w-md overflow-hidden rounded-2xl bg-white">
+						<div className="border-b border-neutral-200 p-6">
 							<h2 className="text-xl font-bold text-neutral-800">
 								{editingCategory ? "카테고리 수정" : "카테고리 추가"}
 							</h2>
 						</div>
-						<div className="p-6 space-y-6">
+						<div className="space-y-6 p-6">
 							<div>
-								<label className="block text-sm font-bold text-neutral-700 mb-2">
-									이름
-								</label>
+								<label className="mb-2 block text-sm font-bold text-neutral-700">이름</label>
 								<input
 									type="text"
 									value={categoryForm.name}
-									onChange={(e) =>
+									onChange={(e) => {
 										setCategoryForm((prev) => ({
 											...prev,
 											name: e.target.value,
-										}))
-									}
+										}));
+									}}
 									placeholder="카테고리 이름"
-									className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+									className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
 								/>
 							</div>
 							<div>
-								<label className="block text-sm font-bold text-neutral-700 mb-2">
-									색상
-								</label>
+								<label className="mb-2 block text-sm font-bold text-neutral-700">색상</label>
 								<div className="flex flex-wrap gap-3">
 									{colorOptions.map((color) => (
 										<button
 											key={color}
-											onClick={() =>
-												setCategoryForm((prev) => ({ ...prev, color }))
-											}
-											className={`w-10 h-10 rounded-full transition-transform ${
+											onClick={() => {
+												setCategoryForm((prev) => ({ ...prev, color }));
+											}}
+											className={`h-10 w-10 rounded-full transition-transform ${
 												categoryForm.color === color
-													? "ring-2 ring-offset-2 ring-primary-500 scale-110"
+													? "ring-primary-500 scale-110 ring-2 ring-offset-2"
 													: "hover:scale-105"
 											}`}
 											style={{ backgroundColor: color }}
@@ -372,17 +322,19 @@ export default function ServicesPage() {
 								</div>
 							</div>
 						</div>
-						<div className="p-6 bg-neutral-50 flex gap-3 justify-end">
+						<div className="flex justify-end gap-3 bg-neutral-50 p-6">
 							<button
-								onClick={() => setIsCategoryModalOpen(false)}
-								className="px-4 py-2.5 text-neutral-600 font-bold hover:bg-neutral-200 rounded-xl transition-colors"
+								onClick={() => {
+									setIsCategoryModalOpen(false);
+								}}
+								className="rounded-xl px-4 py-2.5 font-bold text-neutral-600 transition-colors hover:bg-neutral-200"
 							>
 								취소
 							</button>
 							<button
 								onClick={handleCategorySubmit}
 								disabled={!categoryForm.name.trim()}
-								className="px-4 py-2.5 bg-primary-500 text-white font-bold rounded-xl hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 							>
 								{editingCategory ? "수정" : "추가"}
 							</button>
@@ -393,72 +345,68 @@ export default function ServicesPage() {
 
 			{/* Item Modal */}
 			{isItemModalOpen && (
-				<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-					<div className="bg-white rounded-2xl w-full max-w-md mx-4 overflow-hidden">
-						<div className="p-6 border-b border-neutral-200">
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+					<div className="mx-4 w-full max-w-md overflow-hidden rounded-2xl bg-white">
+						<div className="border-b border-neutral-200 p-6">
 							<h2 className="text-xl font-bold text-neutral-800">
 								{editingItem ? "시술 수정" : "시술 추가"}
 							</h2>
 						</div>
-						<div className="p-6 space-y-6">
+						<div className="space-y-6 p-6">
 							<div>
-								<label className="block text-sm font-bold text-neutral-700 mb-2">
-									시술명
-								</label>
+								<label className="mb-2 block text-sm font-bold text-neutral-700">시술명</label>
 								<input
 									type="text"
 									value={itemForm.name}
-									onChange={(e) =>
-										setItemForm((prev) => ({ ...prev, name: e.target.value }))
-									}
+									onChange={(e) => {
+										setItemForm((prev) => ({ ...prev, name: e.target.value }));
+									}}
 									placeholder="시술 이름"
-									className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+									className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
 								/>
 							</div>
 							<div>
-								<label className="block text-sm font-bold text-neutral-700 mb-2">
-									가격
-								</label>
+								<label className="mb-2 block text-sm font-bold text-neutral-700">가격</label>
 								<input
 									type="number"
 									value={itemForm.price}
-									onChange={(e) =>
-										setItemForm((prev) => ({ ...prev, price: e.target.value }))
-									}
+									onChange={(e) => {
+										setItemForm((prev) => ({ ...prev, price: e.target.value }));
+									}}
 									placeholder="0"
-									className="w-full px-4 py-3 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+									className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
 								/>
 							</div>
 							<div>
-								<label className="flex items-center gap-3 cursor-pointer">
+								<label className="flex cursor-pointer items-center gap-3">
 									<input
 										type="checkbox"
 										checked={itemForm.membershipEligible}
-										onChange={(e) =>
+										onChange={(e) => {
 											setItemForm((prev) => ({
 												...prev,
 												membershipEligible: e.target.checked,
-											}))
-										}
-										className="w-5 h-5 rounded text-primary-500 focus:ring-primary-500"
+											}));
+										}}
+										className="text-primary-500 focus:ring-primary-500 h-5 w-5 rounded"
 									/>
-									<span className="font-medium text-neutral-700">
-										정기권 사용 가능
-									</span>
+									<span className="font-medium text-neutral-700">정기권 사용 가능</span>
 								</label>
 							</div>
 						</div>
-						<div className="p-6 bg-neutral-50 flex gap-3 justify-end">
+						<div className="flex justify-end gap-3 bg-neutral-50 p-6">
 							<button
-								onClick={() => setIsItemModalOpen(false)}
-								className="px-4 py-2.5 text-neutral-600 font-bold hover:bg-neutral-200 rounded-xl transition-colors"
+								onClick={() => {
+									setIsItemModalOpen(false);
+								}}
+								className="rounded-xl px-4 py-2.5 font-bold text-neutral-600 transition-colors hover:bg-neutral-200"
 							>
 								취소
 							</button>
 							<button
 								onClick={handleItemSubmit}
 								disabled={!itemForm.name.trim() || !itemForm.price}
-								className="px-4 py-2.5 bg-primary-500 text-white font-bold rounded-xl hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 							>
 								{editingItem ? "수정" : "추가"}
 							</button>

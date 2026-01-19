@@ -1,0 +1,25 @@
+#!/bin/sh
+
+# Commit message convention check
+# Format: type(scope): description
+# Types: feat, fix, docs, style, refactor, test, chore
+
+commit_regex='^(feat|fix|docs|style|refactor|test|chore)(\(.+\))?: .{1,50}'
+
+if ! grep -qE "$commit_regex" "$1"; then
+    echo "❌ Invalid commit message format!"
+    echo ""
+    echo "Expected format: type(scope): description"
+    echo ""
+    echo "Types:"
+    echo "  feat     - New feature"
+    echo "  fix      - Bug fix"
+    echo "  docs     - Documentation"
+    echo "  style    - Formatting, no code change"
+    echo "  refactor - Code restructuring"
+    echo "  test     - Adding tests"
+    echo "  chore    - Maintenance"
+    echo ""
+    echo "Example: feat(sale): add discount calculation"
+    exit 1
+fi

@@ -3,35 +3,40 @@ import { useEffect, useRef, useState } from "react";
 // Counter hook for animated numbers
 function useCountUp(
 	end: number,
-	duration: number = 2000,
-	startOnView: boolean = true,
-) {
+	duration = 2000,
+	startOnView = true,
+): { count: number; ref: React.RefObject<HTMLDivElement | null> } {
 	const [count, setCount] = useState(0);
 	const [hasStarted, setHasStarted] = useState(!startOnView);
 	const ref = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		if (startOnView && ref.current) {
-			const observer = new IntersectionObserver(
-				([entry]) => {
-					if (entry.isIntersecting) {
-						setHasStarted(true);
-						observer.disconnect();
-					}
-				},
-				{ threshold: 0.3 },
-			);
-			observer.observe(ref.current);
-			return () => observer.disconnect();
-		}
+		if (!startOnView) return;
+		if (ref.current === null) return;
+
+		const element = ref.current;
+		const observer = new IntersectionObserver(
+			(entries) => {
+				const entry = entries[0];
+				if (entry?.isIntersecting === true) {
+					setHasStarted(true);
+					observer.disconnect();
+				}
+			},
+			{ threshold: 0.3 },
+		);
+		observer.observe(element);
+		return () => {
+			observer.disconnect();
+		};
 	}, [startOnView]);
 
 	useEffect(() => {
 		if (!hasStarted) return;
 
-		let startTime: number;
-		const animate = (currentTime: number) => {
-			if (!startTime) startTime = currentTime;
+		let startTime: number | undefined;
+		const animate = (currentTime: number): void => {
+			startTime ??= currentTime;
 			const progress = Math.min((currentTime - startTime) / duration, 1);
 			setCount(Math.floor(progress * end));
 			if (progress < 1) {
@@ -55,19 +60,17 @@ function FeatureCard({
 	title: string;
 	description: string;
 	delay: number;
-}) {
+}): React.ReactElement {
 	return (
 		<div
-			className="bg-white rounded-2xl p-8 shadow-lg shadow-neutral-200/50 hover:shadow-xl hover:shadow-primary-100/50 transition-all duration-300 hover:-translate-y-1 animate-fade-in-up"
-			style={{ animationDelay: `${delay}s` }}
+			className="hover:shadow-primary-100/50 animate-fade-in-up rounded-2xl bg-white p-8 shadow-lg shadow-neutral-200/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+			style={{ animationDelay: `${String(delay)}s` }}
 		>
-			<div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-100 to-primary-50 flex items-center justify-center mb-5">
+			<div className="from-primary-100 to-primary-50 mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br">
 				{icon}
 			</div>
-			<h3 className="font-display text-xl font-semibold text-neutral-800 mb-3">
-				{title}
-			</h3>
-			<p className="text-neutral-500 leading-relaxed">{description}</p>
+			<h3 className="font-display mb-3 text-xl font-semibold text-neutral-800">{title}</h3>
+			<p className="leading-relaxed text-neutral-500">{description}</p>
 		</div>
 	);
 }
@@ -85,27 +88,22 @@ function StatCard({
 	label: string;
 	trend?: string;
 	delay: number;
-}) {
+}): React.ReactElement {
 	const { count, ref } = useCountUp(value, 2000);
 
 	return (
 		<div
 			ref={ref}
-			className="text-center animate-fade-in-up"
-			style={{ animationDelay: `${delay}s` }}
+			className="animate-fade-in-up text-center"
+			style={{ animationDelay: `${String(delay)}s` }}
 		>
-			<div className="font-display text-5xl md:text-6xl font-bold text-neutral-900 mb-2">
+			<div className="font-display mb-2 text-5xl font-bold text-neutral-900 md:text-6xl">
 				{count.toLocaleString()}
 				{suffix}
 			</div>
-			{trend && (
-				<div className="inline-flex items-center gap-1 text-success-600 text-sm font-medium mb-2 bg-success-400/10 px-2 py-0.5 rounded-full">
-					<svg
-						className="w-3 h-3"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
+			{trend !== undefined && trend !== "" && (
+				<div className="text-success-600 bg-success-400/10 mb-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-sm font-medium">
+					<svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							strokeLinecap="round"
 							strokeLinejoin="round"
@@ -116,47 +114,40 @@ function StatCard({
 					{trend}
 				</div>
 			)}
-			<div className="text-neutral-500 font-medium">{label}</div>
+			<div className="font-medium text-neutral-500">{label}</div>
 		</div>
 	);
 }
 
 // Dashboard preview component
-function DashboardPreview() {
+function DashboardPreview(): React.ReactElement {
 	const chartData = [30, 45, 35, 55, 40, 65, 50, 75, 60, 85, 70, 90];
 
 	return (
-		<div className="bg-white rounded-3xl shadow-2xl shadow-neutral-300/30 overflow-hidden border border-neutral-100">
+		<div className="overflow-hidden rounded-3xl border border-neutral-100 bg-white shadow-2xl shadow-neutral-300/30">
 			{/* Browser chrome */}
-			<div className="bg-neutral-100 px-4 py-3 flex items-center gap-2">
+			<div className="flex items-center gap-2 bg-neutral-100 px-4 py-3">
 				<div className="flex gap-1.5">
-					<div className="w-3 h-3 rounded-full bg-red-400" />
-					<div className="w-3 h-3 rounded-full bg-amber-400" />
-					<div className="w-3 h-3 rounded-full bg-green-400" />
+					<div className="h-3 w-3 rounded-full bg-red-400" />
+					<div className="h-3 w-3 rounded-full bg-amber-400" />
+					<div className="h-3 w-3 rounded-full bg-green-400" />
 				</div>
-				<div className="flex-1 mx-4">
-					<div className="bg-white rounded-lg px-4 py-1.5 text-sm text-neutral-400 w-full max-w-md">
+				<div className="mx-4 flex-1">
+					<div className="w-full max-w-md rounded-lg bg-white px-4 py-1.5 text-sm text-neutral-400">
 						mariem.app/dashboard
 					</div>
 				</div>
 			</div>
 
 			{/* Dashboard content */}
-			<div className="p-6 bg-gradient-to-br from-neutral-50 to-white">
+			<div className="bg-gradient-to-br from-neutral-50 to-white p-6">
 				{/* Top stats row */}
-				<div className="grid grid-cols-3 gap-4 mb-6">
-					<div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100">
-						<div className="text-sm text-neutral-500 mb-1">오늘 매출</div>
-						<div className="font-display text-2xl font-bold text-neutral-800">
-							₩1,250,000
-						</div>
-						<div className="flex items-center gap-1 text-success-600 text-xs mt-1">
-							<svg
-								className="w-3 h-3"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
+				<div className="mb-6 grid grid-cols-3 gap-4">
+					<div className="rounded-xl border border-neutral-100 bg-white p-4 shadow-sm">
+						<div className="mb-1 text-sm text-neutral-500">오늘 매출</div>
+						<div className="font-display text-2xl font-bold text-neutral-800">₩1,250,000</div>
+						<div className="text-success-600 mt-1 flex items-center gap-1 text-xs">
+							<svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
 									strokeLinecap="round"
 									strokeLinejoin="round"
@@ -167,18 +158,11 @@ function DashboardPreview() {
 							+23% vs 어제
 						</div>
 					</div>
-					<div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100">
-						<div className="text-sm text-neutral-500 mb-1">거래 건수</div>
-						<div className="font-display text-2xl font-bold text-neutral-800">
-							28건
-						</div>
-						<div className="flex items-center gap-1 text-success-600 text-xs mt-1">
-							<svg
-								className="w-3 h-3"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
+					<div className="rounded-xl border border-neutral-100 bg-white p-4 shadow-sm">
+						<div className="mb-1 text-sm text-neutral-500">거래 건수</div>
+						<div className="font-display text-2xl font-bold text-neutral-800">28건</div>
+						<div className="text-success-600 mt-1 flex items-center gap-1 text-xs">
+							<svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
 									strokeLinecap="round"
 									strokeLinejoin="round"
@@ -189,13 +173,11 @@ function DashboardPreview() {
 							+5건
 						</div>
 					</div>
-					<div className="bg-white rounded-xl p-4 shadow-sm border border-neutral-100">
-						<div className="text-sm text-neutral-500 mb-1">신규 고객</div>
-						<div className="font-display text-2xl font-bold text-neutral-800">
-							7명
-						</div>
-						<div className="flex items-center gap-1 text-accent-600 text-xs mt-1">
-							<svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+					<div className="rounded-xl border border-neutral-100 bg-white p-4 shadow-sm">
+						<div className="mb-1 text-sm text-neutral-500">신규 고객</div>
+						<div className="font-display text-2xl font-bold text-neutral-800">7명</div>
+						<div className="text-accent-600 mt-1 flex items-center gap-1 text-xs">
+							<svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
 								<path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
 							</svg>
 							신규 회원
@@ -204,40 +186,38 @@ function DashboardPreview() {
 				</div>
 
 				{/* Chart area */}
-				<div className="bg-white rounded-xl p-5 shadow-sm border border-neutral-100">
-					<div className="flex items-center justify-between mb-4">
-						<div className="font-display font-semibold text-neutral-800">
-							월간 매출 추이
-						</div>
+				<div className="rounded-xl border border-neutral-100 bg-white p-5 shadow-sm">
+					<div className="mb-4 flex items-center justify-between">
+						<div className="font-display font-semibold text-neutral-800">월간 매출 추이</div>
 						<div className="flex gap-2">
-							<span className="text-xs px-2 py-1 bg-primary-50 text-primary-700 rounded-md">
+							<span className="bg-primary-50 text-primary-700 rounded-md px-2 py-1 text-xs">
 								올해
 							</span>
-							<span className="text-xs px-2 py-1 text-neutral-400">작년</span>
+							<span className="px-2 py-1 text-xs text-neutral-400">작년</span>
 						</div>
 					</div>
-					<div className="flex items-end justify-between h-32 gap-2">
+					<div className="flex h-32 items-end justify-between gap-2">
 						{chartData.map((value, i) => (
-							<div key={i} className="flex-1 flex flex-col items-center gap-1">
+							<div key={i} className="flex flex-1 flex-col items-center gap-1">
 								<div
-									className="w-full rounded-t-md bg-gradient-to-t from-primary-500 to-primary-400 animate-grow-up"
+									className="from-primary-500 to-primary-400 animate-grow-up w-full rounded-t-md bg-gradient-to-t"
 									style={{
-										height: `${value}%`,
-										animationDelay: `${0.5 + i * 0.08}s`,
+										height: `${String(value)}%`,
+										animationDelay: `${String(0.5 + i * 0.08)}s`,
 									}}
 								/>
-								<span className="text-[10px] text-neutral-400">{i + 1}월</span>
+								<span className="text-[10px] text-neutral-400">{String(i + 1)}월</span>
 							</div>
 						))}
 					</div>
 				</div>
 
 				{/* Insight card */}
-				<div className="mt-4 bg-gradient-to-r from-primary-50 to-accent-50 rounded-xl p-4 border border-primary-100">
+				<div className="from-primary-50 to-accent-50 border-primary-100 mt-4 rounded-xl border bg-gradient-to-r p-4">
 					<div className="flex items-start gap-3">
-						<div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center flex-shrink-0">
+						<div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
 							<svg
-								className="w-4 h-4 text-primary-600"
+								className="text-primary-600 h-4 w-4"
 								fill="none"
 								stroke="currentColor"
 								viewBox="0 0 24 24"
@@ -251,14 +231,14 @@ function DashboardPreview() {
 							</svg>
 						</div>
 						<div>
-							<div className="font-display font-semibold text-neutral-800 text-sm mb-1">
+							<div className="font-display mb-1 text-sm font-semibold text-neutral-800">
 								AI 인사이트
 							</div>
-							<p className="text-xs text-neutral-600 leading-relaxed">
-								<span className="text-primary-700 font-medium">김디자이너</span>
-								의 펌 시술 재방문율이
-								<span className="text-success-600 font-medium"> 87%</span>로
-								매우 높습니다. 펌 프로모션 진행 시 담당 배정을 권장합니다.
+							<p className="text-xs leading-relaxed text-neutral-600">
+								<span className="text-primary-700 font-medium">김디자이너</span>의 펌 시술
+								재방문율이
+								<span className="text-success-600 font-medium"> 87%</span>로 매우 높습니다. 펌
+								프로모션 진행 시 담당 배정을 권장합니다.
 							</p>
 						</div>
 					</div>
@@ -269,30 +249,32 @@ function DashboardPreview() {
 }
 
 // Main Landing Page
-export default function LandingPage() {
+export default function LandingPage(): React.ReactElement {
 	const [isScrolled, setIsScrolled] = useState(false);
 
 	useEffect(() => {
-		const handleScroll = () => setIsScrolled(window.scrollY > 20);
+		const handleScroll = (): void => {
+			setIsScrolled(window.scrollY > 20);
+		};
 		window.addEventListener("scroll", handleScroll);
-		return () => window.removeEventListener("scroll", handleScroll);
+		return () => {
+			window.removeEventListener("scroll", handleScroll);
+		};
 	}, []);
 
 	return (
 		<div className="min-h-screen bg-white">
 			{/* Navigation */}
 			<nav
-				className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-					isScrolled
-						? "bg-white shadow-sm border-b border-neutral-100"
-						: "bg-white"
+				className={`fixed top-0 right-0 left-0 z-50 transition-all duration-300 ${
+					isScrolled ? "border-b border-neutral-100 bg-white shadow-sm" : "bg-white"
 				}`}
 			>
-				<div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+				<div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 					<div className="flex items-center gap-2">
-						<div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center">
+						<div className="bg-primary-600 flex h-10 w-10 items-center justify-center rounded-xl">
 							<svg
-								className="w-6 h-6 text-white"
+								className="h-6 w-6 text-white"
 								fill="none"
 								stroke="currentColor"
 								viewBox="0 0 24 24"
@@ -305,35 +287,33 @@ export default function LandingPage() {
 								/>
 							</svg>
 						</div>
-						<span className="font-display text-xl font-bold text-neutral-900">
-							Mariem
-						</span>
+						<span className="font-display text-xl font-bold text-neutral-900">Mariem</span>
 					</div>
-					<div className="hidden md:flex items-center gap-8">
+					<div className="hidden items-center gap-8 md:flex">
 						<a
 							href="#features"
-							className="text-neutral-600 hover:text-neutral-900 transition-colors"
+							className="text-neutral-600 transition-colors hover:text-neutral-900"
 						>
 							기능
 						</a>
 						<a
 							href="#pricing"
-							className="text-neutral-600 hover:text-neutral-900 transition-colors"
+							className="text-neutral-600 transition-colors hover:text-neutral-900"
 						>
 							요금제
 						</a>
 						<a
 							href="#contact"
-							className="text-neutral-600 hover:text-neutral-900 transition-colors"
+							className="text-neutral-600 transition-colors hover:text-neutral-900"
 						>
 							문의
 						</a>
 					</div>
 					<div className="flex items-center gap-3">
-						<button className="text-neutral-600 hover:text-neutral-900 transition-colors font-medium">
+						<button className="font-medium text-neutral-600 transition-colors hover:text-neutral-900">
 							로그인
 						</button>
-						<button className="bg-primary-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+						<button className="bg-primary-600 hover:bg-primary-700 rounded-lg px-5 py-2.5 font-medium text-white transition-colors">
 							무료 시작
 						</button>
 					</div>
@@ -341,43 +321,36 @@ export default function LandingPage() {
 			</nav>
 
 			{/* Hero Section */}
-			<section className="pt-32 pb-20 px-6 bg-neutral-50">
-				<div className="max-w-7xl mx-auto">
-					<div className="grid lg:grid-cols-2 gap-12 items-center">
+			<section className="bg-neutral-50 px-6 pt-32 pb-20">
+				<div className="mx-auto max-w-7xl">
+					<div className="grid items-center gap-12 lg:grid-cols-2">
 						{/* Left content */}
 						<div className="animate-fade-in-up">
-							<div className="inline-flex items-center gap-2 bg-primary-50 px-4 py-2 rounded-full mb-6">
-								<span className="w-2 h-2 rounded-full bg-primary-500" />
-								<span className="text-sm text-primary-700 font-medium">
+							<div className="bg-primary-50 mb-6 inline-flex items-center gap-2 rounded-full px-4 py-2">
+								<span className="bg-primary-500 h-2 w-2 rounded-full" />
+								<span className="text-primary-700 text-sm font-medium">
 									데이터 기반 미용실 성장 플랫폼
 								</span>
 							</div>
 
-							<h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 leading-tight mb-6">
+							<h1 className="font-display mb-6 text-4xl leading-tight font-bold text-neutral-900 md:text-5xl lg:text-6xl">
 								거래 입력 하나로
 								<br />
 								<span className="text-primary-600">매출 분석부터 전략까지</span>
 							</h1>
 
-							<p className="text-lg text-neutral-600 leading-relaxed mb-8 max-w-lg">
+							<p className="mb-8 max-w-lg text-lg leading-relaxed text-neutral-600">
 								복잡한 엑셀은 이제 그만. 터치 몇 번으로 거래를 입력하면,
-								<strong className="text-neutral-900">
-									{" "}
-									AI가 자동으로 성과를 분석
-								</strong>
+								<strong className="text-neutral-900"> AI가 자동으로 성과를 분석</strong>
 								하고 매출 성장 전략을 제안합니다.
 							</p>
 
-							<div className="flex flex-col sm:flex-row gap-4 mb-8">
-								<button className="bg-primary-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-primary-700 transition-colors">
+							<div className="mb-8 flex flex-col gap-4 sm:flex-row">
+								<button className="bg-primary-600 hover:bg-primary-700 rounded-xl px-8 py-4 text-lg font-semibold text-white transition-colors">
 									14일 무료 체험 시작
 								</button>
-								<button className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-medium text-neutral-700 bg-white hover:bg-neutral-50 transition-colors border border-neutral-200">
-									<svg
-										className="w-5 h-5"
-										fill="currentColor"
-										viewBox="0 0 20 20"
-									>
+								<button className="flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-6 py-4 font-medium text-neutral-700 transition-colors hover:bg-neutral-50">
+									<svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
 										<path
 											fillRule="evenodd"
 											d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
@@ -390,11 +363,7 @@ export default function LandingPage() {
 
 							<div className="flex items-center gap-6 text-sm text-neutral-500">
 								<div className="flex items-center gap-2">
-									<svg
-										className="w-4 h-4 text-success-500"
-										fill="currentColor"
-										viewBox="0 0 20 20"
-									>
+									<svg className="text-success-500 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
 										<path
 											fillRule="evenodd"
 											d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -404,11 +373,7 @@ export default function LandingPage() {
 									카드 등록 불필요
 								</div>
 								<div className="flex items-center gap-2">
-									<svg
-										className="w-4 h-4 text-success-500"
-										fill="currentColor"
-										viewBox="0 0 20 20"
-									>
+									<svg className="text-success-500 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
 										<path
 											fillRule="evenodd"
 											d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -421,10 +386,7 @@ export default function LandingPage() {
 						</div>
 
 						{/* Right - Dashboard preview */}
-						<div
-							className="animate-fade-in-up animate-float"
-							style={{ animationDelay: "0.3s" }}
-						>
+						<div className="animate-fade-in-up animate-float" style={{ animationDelay: "0.3s" }}>
 							<DashboardPreview />
 						</div>
 					</div>
@@ -432,9 +394,9 @@ export default function LandingPage() {
 			</section>
 
 			{/* Stats Section */}
-			<section className="py-20 px-6 bg-white border-y border-neutral-100">
-				<div className="max-w-5xl mx-auto">
-					<div className="grid md:grid-cols-3 gap-12">
+			<section className="border-y border-neutral-100 bg-white px-6 py-20">
+				<div className="mx-auto max-w-5xl">
+					<div className="grid gap-12 md:grid-cols-3">
 						<StatCard
 							value={324}
 							suffix="%"
@@ -442,12 +404,7 @@ export default function LandingPage() {
 							trend="+32% 월간"
 							delay={0}
 						/>
-						<StatCard
-							value={2847}
-							suffix="+"
-							label="사용 중인 미용실"
-							delay={0.1}
-						/>
+						<StatCard value={2847} suffix="+" label="사용 중인 미용실" delay={0.1} />
 						<StatCard
 							value={15}
 							suffix="분"
@@ -460,25 +417,24 @@ export default function LandingPage() {
 			</section>
 
 			{/* Features Section */}
-			<section id="features" className="py-24 px-6 bg-neutral-50">
-				<div className="max-w-7xl mx-auto">
-					<div className="text-center mb-16">
-						<h2 className="font-display text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
-							데이터가 <span className="text-primary-600">말해주는</span> 성장
-							전략
+			<section id="features" className="bg-neutral-50 px-6 py-24">
+				<div className="mx-auto max-w-7xl">
+					<div className="mb-16 text-center">
+						<h2 className="font-display mb-4 text-3xl font-bold text-neutral-900 md:text-4xl">
+							데이터가 <span className="text-primary-600">말해주는</span> 성장 전략
 						</h2>
-						<p className="text-lg text-neutral-500 max-w-2xl mx-auto">
-							IT를 몰라도 괜찮아요. 터치 한 번으로 거래를 입력하면, 나머지는
-							Mariem이 알아서 해드립니다.
+						<p className="mx-auto max-w-2xl text-lg text-neutral-500">
+							IT를 몰라도 괜찮아요. 터치 한 번으로 거래를 입력하면, 나머지는 Mariem이 알아서
+							해드립니다.
 						</p>
 					</div>
 
-					<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+					<div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
 						<FeatureCard
 							delay={0}
 							icon={
 								<svg
-									className="w-7 h-7 text-primary-600"
+									className="text-primary-600 h-7 w-7"
 									fill="none"
 									stroke="currentColor"
 									viewBox="0 0 24 24"
@@ -498,7 +454,7 @@ export default function LandingPage() {
 							delay={0.1}
 							icon={
 								<svg
-									className="w-7 h-7 text-primary-600"
+									className="text-primary-600 h-7 w-7"
 									fill="none"
 									stroke="currentColor"
 									viewBox="0 0 24 24"
@@ -518,7 +474,7 @@ export default function LandingPage() {
 							delay={0.2}
 							icon={
 								<svg
-									className="w-7 h-7 text-primary-600"
+									className="text-primary-600 h-7 w-7"
 									fill="none"
 									stroke="currentColor"
 									viewBox="0 0 24 24"
@@ -538,7 +494,7 @@ export default function LandingPage() {
 							delay={0.3}
 							icon={
 								<svg
-									className="w-7 h-7 text-primary-600"
+									className="text-primary-600 h-7 w-7"
 									fill="none"
 									stroke="currentColor"
 									viewBox="0 0 24 24"
@@ -558,7 +514,7 @@ export default function LandingPage() {
 							delay={0.4}
 							icon={
 								<svg
-									className="w-7 h-7 text-primary-600"
+									className="text-primary-600 h-7 w-7"
 									fill="none"
 									stroke="currentColor"
 									viewBox="0 0 24 24"
@@ -578,7 +534,7 @@ export default function LandingPage() {
 							delay={0.5}
 							icon={
 								<svg
-									className="w-7 h-7 text-primary-600"
+									className="text-primary-600 h-7 w-7"
 									fill="none"
 									stroke="currentColor"
 									viewBox="0 0 24 24"
@@ -599,13 +555,13 @@ export default function LandingPage() {
 			</section>
 
 			{/* Social Proof */}
-			<section className="py-20 px-6 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white">
-				<div className="max-w-4xl mx-auto text-center">
-					<div className="inline-flex items-center gap-1 mb-6">
-						{[...Array(5)].map((_, i) => (
+			<section className="from-primary-600 via-primary-700 to-primary-800 bg-gradient-to-br px-6 py-20 text-white">
+				<div className="mx-auto max-w-4xl text-center">
+					<div className="mb-6 inline-flex items-center gap-1">
+						{Array.from({ length: 5 }).map((_, i) => (
 							<svg
 								key={i}
-								className="w-6 h-6 text-accent-400"
+								className="text-accent-400 h-6 w-6"
 								fill="currentColor"
 								viewBox="0 0 20 20"
 							>
@@ -614,56 +570,49 @@ export default function LandingPage() {
 						))}
 					</div>
 
-					<blockquote className="font-display text-2xl md:text-3xl font-medium leading-relaxed mb-8">
+					<blockquote className="font-display mb-8 text-2xl leading-relaxed font-medium md:text-3xl">
 						"엑셀로 매출 정리하느라 매일 밤 1시간씩 썼는데, 이제는 퇴근 후
 						<span className="text-accent-300"> 앱에서 오늘 성과만 확인</span>
-						하면 끝이에요. 디자이너별 성과가 한눈에 보여서 인센티브 정산도
-						쉬워졌고요."
+						하면 끝이에요. 디자이너별 성과가 한눈에 보여서 인센티브 정산도 쉬워졌고요."
 					</blockquote>
 
 					<div className="flex items-center justify-center gap-4">
-						<div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center font-display font-bold text-lg">
+						<div className="font-display flex h-14 w-14 items-center justify-center rounded-full bg-white/20 text-lg font-bold">
 							JH
 						</div>
 						<div className="text-left">
 							<div className="font-semibold">김정희 원장님</div>
-							<div className="text-primary-200 text-sm">
-								헤어라운지 강남점 · 사용 8개월
-							</div>
+							<div className="text-primary-200 text-sm">헤어라운지 강남점 · 사용 8개월</div>
 						</div>
 					</div>
 				</div>
 			</section>
 
 			{/* CTA Section */}
-			<section className="py-24 px-6 bg-white">
-				<div className="max-w-4xl mx-auto text-center">
-					<h2 className="font-display text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
+			<section className="bg-white px-6 py-24">
+				<div className="mx-auto max-w-4xl text-center">
+					<h2 className="font-display mb-4 text-3xl font-bold text-neutral-900 md:text-4xl">
 						지금 바로 시작하세요
 					</h2>
-					<p className="text-lg text-neutral-500 mb-8 max-w-xl mx-auto">
+					<p className="mx-auto mb-8 max-w-xl text-lg text-neutral-500">
 						복잡한 설정 없이 5분이면 시작할 수 있습니다.
 						<br />
 						14일 무료 체험 후 결정하세요.
 					</p>
 
-					<div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-						<button className="bg-primary-600 text-white px-10 py-4 rounded-xl font-semibold text-lg hover:bg-primary-700 transition-colors">
+					<div className="mb-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+						<button className="bg-primary-600 hover:bg-primary-700 rounded-xl px-10 py-4 text-lg font-semibold text-white transition-colors">
 							무료로 시작하기
 						</button>
 						<span className="text-neutral-400">또는</span>
-						<button className="text-primary-600 font-medium hover:text-primary-700 transition-colors underline underline-offset-4">
+						<button className="text-primary-600 hover:text-primary-700 font-medium underline underline-offset-4 transition-colors">
 							데모 미팅 예약하기
 						</button>
 					</div>
 
 					<div className="flex flex-wrap justify-center gap-6 text-sm text-neutral-500">
 						<div className="flex items-center gap-2">
-							<svg
-								className="w-5 h-5 text-success-500"
-								fill="currentColor"
-								viewBox="0 0 20 20"
-							>
+							<svg className="text-success-500 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
 								<path
 									fillRule="evenodd"
 									d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -673,11 +622,7 @@ export default function LandingPage() {
 							14일 무료 체험
 						</div>
 						<div className="flex items-center gap-2">
-							<svg
-								className="w-5 h-5 text-success-500"
-								fill="currentColor"
-								viewBox="0 0 20 20"
-							>
+							<svg className="text-success-500 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
 								<path
 									fillRule="evenodd"
 									d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -687,11 +632,7 @@ export default function LandingPage() {
 							카드 등록 불필요
 						</div>
 						<div className="flex items-center gap-2">
-							<svg
-								className="w-5 h-5 text-success-500"
-								fill="currentColor"
-								viewBox="0 0 20 20"
-							>
+							<svg className="text-success-500 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
 								<path
 									fillRule="evenodd"
 									d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -701,11 +642,7 @@ export default function LandingPage() {
 							언제든 취소 가능
 						</div>
 						<div className="flex items-center gap-2">
-							<svg
-								className="w-5 h-5 text-success-500"
-								fill="currentColor"
-								viewBox="0 0 20 20"
-							>
+							<svg className="text-success-500 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
 								<path
 									fillRule="evenodd"
 									d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -719,14 +656,14 @@ export default function LandingPage() {
 			</section>
 
 			{/* Footer */}
-			<footer className="py-12 px-6 bg-neutral-900 text-neutral-400">
-				<div className="max-w-7xl mx-auto">
-					<div className="grid md:grid-cols-4 gap-8 mb-12">
+			<footer className="bg-neutral-900 px-6 py-12 text-neutral-400">
+				<div className="mx-auto max-w-7xl">
+					<div className="mb-12 grid gap-8 md:grid-cols-4">
 						<div>
-							<div className="flex items-center gap-2 mb-4">
-								<div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
+							<div className="mb-4 flex items-center gap-2">
+								<div className="bg-primary-600 flex h-8 w-8 items-center justify-center rounded-lg">
 									<svg
-										className="w-5 h-5 text-white"
+										className="h-5 w-5 text-white"
 										fill="none"
 										stroke="currentColor"
 										viewBox="0 0 24 24"
@@ -739,9 +676,7 @@ export default function LandingPage() {
 										/>
 									</svg>
 								</div>
-								<span className="font-display text-lg font-bold text-white">
-									Mariem
-								</span>
+								<span className="font-display text-lg font-bold text-white">Mariem</span>
 							</div>
 							<p className="text-sm leading-relaxed">
 								데이터 기반 미용실 성장 플랫폼.
@@ -751,20 +686,20 @@ export default function LandingPage() {
 						</div>
 
 						<div>
-							<h4 className="font-semibold text-white mb-4">제품</h4>
+							<h4 className="mb-4 font-semibold text-white">제품</h4>
 							<ul className="space-y-2 text-sm">
 								<li>
-									<a href="#" className="hover:text-white transition-colors">
+									<a href="#" className="transition-colors hover:text-white">
 										기능 소개
 									</a>
 								</li>
 								<li>
-									<a href="#" className="hover:text-white transition-colors">
+									<a href="#" className="transition-colors hover:text-white">
 										요금제
 									</a>
 								</li>
 								<li>
-									<a href="#" className="hover:text-white transition-colors">
+									<a href="#" className="transition-colors hover:text-white">
 										업데이트
 									</a>
 								</li>
@@ -772,20 +707,20 @@ export default function LandingPage() {
 						</div>
 
 						<div>
-							<h4 className="font-semibold text-white mb-4">지원</h4>
+							<h4 className="mb-4 font-semibold text-white">지원</h4>
 							<ul className="space-y-2 text-sm">
 								<li>
-									<a href="#" className="hover:text-white transition-colors">
+									<a href="#" className="transition-colors hover:text-white">
 										고객센터
 									</a>
 								</li>
 								<li>
-									<a href="#" className="hover:text-white transition-colors">
+									<a href="#" className="transition-colors hover:text-white">
 										사용 가이드
 									</a>
 								</li>
 								<li>
-									<a href="#" className="hover:text-white transition-colors">
+									<a href="#" className="transition-colors hover:text-white">
 										자주 묻는 질문
 									</a>
 								</li>
@@ -793,20 +728,20 @@ export default function LandingPage() {
 						</div>
 
 						<div>
-							<h4 className="font-semibold text-white mb-4">회사</h4>
+							<h4 className="mb-4 font-semibold text-white">회사</h4>
 							<ul className="space-y-2 text-sm">
 								<li>
-									<a href="#" className="hover:text-white transition-colors">
+									<a href="#" className="transition-colors hover:text-white">
 										회사 소개
 									</a>
 								</li>
 								<li>
-									<a href="#" className="hover:text-white transition-colors">
+									<a href="#" className="transition-colors hover:text-white">
 										채용
 									</a>
 								</li>
 								<li>
-									<a href="#" className="hover:text-white transition-colors">
+									<a href="#" className="transition-colors hover:text-white">
 										블로그
 									</a>
 								</li>
@@ -814,13 +749,13 @@ export default function LandingPage() {
 						</div>
 					</div>
 
-					<div className="border-t border-neutral-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+					<div className="flex flex-col items-center justify-between gap-4 border-t border-neutral-800 pt-8 md:flex-row">
 						<div className="text-sm">© 2025 Mariem. All rights reserved.</div>
 						<div className="flex gap-6 text-sm">
-							<a href="#" className="hover:text-white transition-colors">
+							<a href="#" className="transition-colors hover:text-white">
 								이용약관
 							</a>
-							<a href="#" className="hover:text-white transition-colors">
+							<a href="#" className="transition-colors hover:text-white">
 								개인정보처리방침
 							</a>
 						</div>

@@ -1,0 +1,110 @@
+export interface Customer {
+	id: string;
+	name: string;
+	phone: string;
+	initials: string;
+	memo?: string;
+	storedValue?: number;
+	membership?: {
+		name: string;
+		used: number;
+		total: number;
+	};
+}
+
+// 항목별 결제수단 타입
+export type ItemPaymentMethod = "card" | "cash" | "transfer" | "stored_value" | "membership";
+
+export interface CartItem {
+	id: string;
+	name: string;
+	price: number;
+	quantity: number;
+	type: "service" | "product" | "topup";
+	category?: string;
+	topupType?: "stored_value" | "membership";
+	topupValue?: number;
+
+	// 항목별 결제/할인 설정
+	paymentMethod: ItemPaymentMethod;
+	eventId?: string | undefined;
+	discountAmount: number;
+	finalPrice: number;
+	membershipEligible?: boolean | undefined; // 정기권 사용 가능 여부
+}
+
+export interface Payment {
+	method: string;
+	amount: number;
+}
+
+export interface Designer {
+	id: string;
+	name: string;
+	color: string;
+}
+
+export interface ServiceItem {
+	id: string;
+	name: string;
+	price: number;
+	membershipEligible?: boolean; // 정기권 사용 가능 여부
+}
+
+// 할인 이벤트
+export interface DiscountEvent {
+	id: string;
+	name: string;
+	discountType: "percent" | "amount";
+	discountValue: number;
+	applicableTo?: string[]; // 적용 가능한 시술/상품 ID (없으면 전체)
+}
+
+export interface ServiceCategory {
+	id: string;
+	name: string;
+	color: string;
+	items: ServiceItem[];
+}
+
+export interface ProductItem {
+	id: string;
+	name: string;
+	price: number;
+}
+
+export interface ProductBrand {
+	id: string;
+	name: string;
+	items: ProductItem[];
+}
+
+export interface ProductCategory {
+	id: string;
+	name: string;
+	color: string;
+	brands: ProductBrand[];
+}
+
+export interface PaymentMethod {
+	id: string;
+	label: string;
+	color: string;
+}
+
+export interface StoredValueOption {
+	id: string;
+	name: string;
+	price: number;
+	value: number;
+}
+
+export interface MembershipOption {
+	id: string;
+	name: string;
+	price: number;
+	count: number;
+}
+
+export type DiscountType = "percent" | "amount";
+export type ActiveTab = "service" | "product" | "membership";

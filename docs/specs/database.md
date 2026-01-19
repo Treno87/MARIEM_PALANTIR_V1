@@ -43,31 +43,55 @@ end
 
 ```ruby
 create_table :users do |t|
-  # Devise 기본 필드
-  t.string :email, null: false
-  t.string :encrypted_password, null: false
+  # Devise 기본 필드 (Phase 2 - 로그인 기능 시 활성화)
+  t.string :email
+  t.string :encrypted_password
   t.string :reset_password_token
   t.datetime :reset_password_sent_at
   t.datetime :remember_created_at
 
-  # 커스텀 필드
+  # 기본 정보
   t.references :tenant, null: false, foreign_key: true
   t.string :name, null: false
-  t.string :role, null: false, default: 'staff'
-  t.boolean :active, default: true
+  t.string :role, null: false, default: 'designer'
+  t.string :phone
+  t.string :color, null: false, default: '#00c875'
+
+  # 인사 정보
+  t.date :join_date
+  t.date :resignation_date
+  t.string :employment_status, default: 'active'  # active, resigned
+
+  # 표시 설정
+  t.boolean :show_in_sales, default: true    # 거래 입력 시 담당자로 표시
+  t.integer :display_order, default: 0       # 표시 순서
 
   t.timestamps
 end
 
-add_index :users, [:tenant_id, :email], unique: true
+add_index :users, [:tenant_id, :email], unique: true, where: 'email IS NOT NULL'
 add_index :users, :reset_password_token, unique: true
+add_index :users, [:tenant_id, :employment_status]
+add_index :users, [:tenant_id, :show_in_sales]
 ```
 
-**역할 (role)**:
-- `owner`: 원장 - 모든 기능
-- `manager`: 매니저 - 거래 관리, 리포트
-- `staff`: 디자이너 - 거래 생성, 본인 거래 조회
-- `viewer`: 열람자 - 조회만
+**직급 (role)**:
+| 코드 | 표시명 | 설명 |
+|------|--------|------|
+| `owner` | 원장 | 점포 소유자 |
+| `manager` | 실장 | 관리자급 |
+| `designer` | 디자이너 | 일반 시술 담당 |
+| `intern` | 인턴 | 수습 |
+| `staff` | 스탭 | 보조 인력 |
+
+**재직 상태 (employment_status)**:
+- `active`: 재직중
+- `resigned`: 퇴사
+
+**비즈니스 규칙**:
+- `show_in_sales = true`인 직원만 거래 입력 화면에 표시
+- `resignation_date` 입력 시 `employment_status`는 자동으로 `resigned`로 변경
+- 퇴사 직원은 기존 거래 내역에서는 보이지만, 새 거래 담당자로 선택 불가
 
 ---
 

@@ -45,10 +45,28 @@ export interface Payment {
 	amount: number;
 }
 
+// 기존 Designer (하위 호환)
 export interface Designer {
 	id: string;
 	name: string;
 	color: string;
+}
+
+// 직원 관련 타입
+export type StaffRole = "owner" | "manager" | "designer" | "intern" | "staff";
+export type EmploymentStatus = "active" | "resigned";
+
+export interface Staff {
+	id: string;
+	name: string;
+	role: StaffRole;
+	phone?: string | undefined;
+	color: string;
+	joinDate?: string | undefined;
+	resignationDate?: string | undefined;
+	employmentStatus: EmploymentStatus;
+	showInSales: boolean;
+	displayOrder: number;
 }
 
 export interface ServiceItem {

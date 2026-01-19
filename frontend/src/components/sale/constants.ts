@@ -6,6 +6,8 @@ import type {
 	PaymentMethod,
 	ProductCategory,
 	ServiceCategory,
+	Staff,
+	StaffRole,
 	StoredValueOption,
 } from "./types";
 
@@ -34,11 +36,78 @@ export const initialCustomers: Customer[] = [
 	},
 ];
 
-export const mockDesigners: Designer[] = [
-	{ id: "1", name: "김정희", color: "#00c875" },
-	{ id: "2", name: "박수민", color: "#fdab3d" },
-	{ id: "3", name: "이하늘", color: "#a25ddc" },
+// 직급 설정
+export const staffRoleConfig: Record<
+	StaffRole,
+	{ label: string; order: number }
+> = {
+	owner: { label: "원장", order: 1 },
+	manager: { label: "실장", order: 2 },
+	designer: { label: "디자이너", order: 3 },
+	intern: { label: "인턴", order: 4 },
+	staff: { label: "스탭", order: 5 },
+};
+
+export const staffRoleOptions: { value: StaffRole; label: string }[] = [
+	{ value: "owner", label: "원장" },
+	{ value: "manager", label: "실장" },
+	{ value: "designer", label: "디자이너" },
+	{ value: "intern", label: "인턴" },
+	{ value: "staff", label: "스탭" },
 ];
+
+// 확장된 직원 목록
+export const mockStaff: Staff[] = [
+	{
+		id: "1",
+		name: "김정희",
+		role: "owner",
+		phone: "010-1111-2222",
+		color: "#00c875",
+		joinDate: "2020-03-01",
+		employmentStatus: "active",
+		showInSales: true,
+		displayOrder: 1,
+	},
+	{
+		id: "2",
+		name: "박수민",
+		role: "designer",
+		phone: "010-3333-4444",
+		color: "#fdab3d",
+		joinDate: "2022-06-15",
+		employmentStatus: "active",
+		showInSales: true,
+		displayOrder: 2,
+	},
+	{
+		id: "3",
+		name: "이하늘",
+		role: "designer",
+		phone: "010-5555-6666",
+		color: "#a25ddc",
+		joinDate: "2023-01-10",
+		employmentStatus: "active",
+		showInSales: true,
+		displayOrder: 3,
+	},
+	{
+		id: "4",
+		name: "최민서",
+		role: "intern",
+		phone: "010-7777-8888",
+		color: "#e2445c",
+		joinDate: "2025-11-01",
+		employmentStatus: "active",
+		showInSales: false,
+		displayOrder: 4,
+	},
+];
+
+// 기존 Designer 호환용 (하위 호환)
+export const mockDesigners: Designer[] = mockStaff
+	.filter((s) => s.showInSales && s.employmentStatus === "active")
+	.map((s) => ({ id: s.id, name: s.name, color: s.color }));
 
 export const serviceCategories: ServiceCategory[] = [
 	{

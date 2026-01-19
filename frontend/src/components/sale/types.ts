@@ -55,6 +55,14 @@ export interface Designer {
 // 직원 관련 타입
 export type StaffRole = "owner" | "manager" | "designer" | "intern" | "staff";
 export type EmploymentStatus = "active" | "resigned";
+export type Gender = "male" | "female" | "other" | "unspecified";
+
+export interface StaffPermissions {
+	sales: boolean;
+	customers: boolean;
+	reports: boolean;
+	settings: boolean;
+}
 
 export interface Staff {
 	id: string;
@@ -67,6 +75,11 @@ export interface Staff {
 	employmentStatus: EmploymentStatus;
 	showInSales: boolean;
 	displayOrder: number;
+	gender?: Gender | undefined;
+	birthDate?: string | undefined;
+	address?: string | undefined;
+	memo?: string | undefined;
+	permissions?: StaffPermissions | undefined;
 }
 
 export interface ServiceItem {

@@ -1,12 +1,13 @@
 import type {
 	Customer,
-	Designer,
 	DiscountEvent,
+	Gender,
 	MembershipOption,
 	PaymentMethod,
 	ProductCategory,
 	ServiceCategory,
 	Staff,
+	StaffPermissions,
 	StaffRole,
 	StoredValueOption,
 } from "./types";
@@ -37,10 +38,7 @@ export const initialCustomers: Customer[] = [
 ];
 
 // 직급 설정
-export const staffRoleConfig: Record<
-	StaffRole,
-	{ label: string; order: number }
-> = {
+export const staffRoleConfig: Record<StaffRole, { label: string; order: number }> = {
 	owner: { label: "원장", order: 1 },
 	manager: { label: "실장", order: 2 },
 	designer: { label: "디자이너", order: 3 },
@@ -55,6 +53,40 @@ export const staffRoleOptions: { value: StaffRole; label: string }[] = [
 	{ value: "intern", label: "인턴" },
 	{ value: "staff", label: "스탭" },
 ];
+
+// 성별 옵션
+export const genderOptions: { value: Gender; label: string }[] = [
+	{ value: "unspecified", label: "미지정" },
+	{ value: "male", label: "남성" },
+	{ value: "female", label: "여성" },
+	{ value: "other", label: "기타" },
+];
+
+// 권한 설정
+export const permissionConfig: Record<
+	keyof StaffPermissions,
+	{ label: string; description: string }
+> = {
+	sales: { label: "거래 관리", description: "거래 등록, 수정, 취소, 환불" },
+	customers: { label: "고객 관리", description: "고객 등록, 수정, 삭제, 조회" },
+	reports: {
+		label: "매출/정산",
+		description: "매출 취합, 정산 금액 조회, 리포트 출력",
+	},
+	settings: {
+		label: "마스터 설정",
+		description: "서비스/상품/직원 관리, 시스템 설정 변경",
+	},
+};
+
+// 직급별 기본 권한
+export const defaultPermissionsByRole: Record<StaffRole, StaffPermissions> = {
+	owner: { sales: true, customers: true, reports: true, settings: true },
+	manager: { sales: true, customers: true, reports: true, settings: false },
+	designer: { sales: true, customers: true, reports: false, settings: false },
+	intern: { sales: true, customers: false, reports: false, settings: false },
+	staff: { sales: false, customers: false, reports: false, settings: false },
+};
 
 // 확장된 직원 목록
 export const mockStaff: Staff[] = [
@@ -103,11 +135,6 @@ export const mockStaff: Staff[] = [
 		displayOrder: 4,
 	},
 ];
-
-// 기존 Designer 호환용 (하위 호환)
-export const mockDesigners: Designer[] = mockStaff
-	.filter((s) => s.showInSales && s.employmentStatus === "active")
-	.map((s) => ({ id: s.id, name: s.name, color: s.color }));
 
 export const serviceCategories: ServiceCategory[] = [
 	{

@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { useCallback, useState } from "react";
+import { useStaff } from "../../contexts/StaffContext";
 import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { CartTable } from "./CartTable";
 import { CatalogTabs } from "./CatalogTabs";
@@ -8,7 +9,6 @@ import {
 	discountEvents,
 	initialCustomers,
 	membershipOptions,
-	mockDesigners,
 	productCategories,
 	serviceCategories,
 	storedValueOptions,
@@ -19,6 +19,7 @@ import { StaffSelect } from "./StaffSelect";
 import type { CartItem, Customer, ItemPaymentMethod } from "./types";
 
 export default function SalePage(): ReactElement {
+	const { salesStaff } = useStaff();
 	const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
 	const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 	const [selectedDesignerId, setSelectedDesignerId] = useState<string>("1");
@@ -262,7 +263,7 @@ export default function SalePage(): ReactElement {
 								</td>
 								<td className="px-6 py-3">
 									<StaffSelect
-										designers={mockDesigners}
+										designers={salesStaff}
 										selectedDesignerId={selectedDesignerId}
 										onSelect={setSelectedDesignerId}
 										onAddClick={() => {

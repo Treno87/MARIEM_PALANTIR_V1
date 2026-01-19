@@ -1,23 +1,14 @@
 import { type ReactElement, useState } from "react";
-import { type Customer, useCustomers } from "../../contexts/CustomerContext";
-import { genderOptions } from "../sale/constants";
-import type { Gender } from "../sale/types";
-
-interface CustomerFormData {
-	name: string;
-	phone: string;
-	gender: Gender;
-	birthDate: string;
-	memo: string;
-}
-
-const INITIAL_FORM_DATA: CustomerFormData = {
-	name: "",
-	phone: "",
-	gender: "unspecified",
-	birthDate: "",
-	memo: "",
-};
+import {
+	type Customer,
+	getAutoStatus,
+	getCustomerTier,
+	getDaysSinceLastVisit,
+	tierConfig,
+	useCustomers,
+} from "../../contexts/CustomerContext";
+import CustomerDetailModal from "./CustomerDetailModal";
+import CustomerFormModal, { type CustomerFormData } from "./CustomerFormModal";
 
 const statusConfig = {
 	active: {
@@ -36,7 +27,7 @@ export default function CustomersPage(): ReactElement {
 	const { customers, addCustomer, updateCustomer, deleteCustomer } = useCustomers();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-	const [formData, setFormData] = useState<CustomerFormData>(INITIAL_FORM_DATA);
+	const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
 	// 필터 및 검색
 	const [searchQuery, setSearchQuery] = useState("");
@@ -46,7 +37,7 @@ export default function CustomersPage(): ReactElement {
 		// 상태 필터
 		if (!showInactive && c.status === "inactive") return false;
 		// 검색 필터
-		if (searchQuery.trim()) {
+		if (searchQuery.trim() !== "") {
 			const query = searchQuery.toLowerCase();
 			return c.name.toLowerCase().includes(query) || c.phone.includes(searchQuery);
 		}
@@ -55,19 +46,11 @@ export default function CustomersPage(): ReactElement {
 
 	const openAddModal = (): void => {
 		setEditingCustomer(null);
-		setFormData(INITIAL_FORM_DATA);
 		setIsModalOpen(true);
 	};
 
 	const openEditModal = (customer: Customer): void => {
 		setEditingCustomer(customer);
-		setFormData({
-			name: customer.name,
-			phone: customer.phone,
-			gender: customer.gender ?? "unspecified",
-			birthDate: customer.birthDate ?? "",
-			memo: customer.memo ?? "",
-		});
 		setIsModalOpen(true);
 	};
 
@@ -76,27 +59,20 @@ export default function CustomersPage(): ReactElement {
 		setEditingCustomer(null);
 	};
 
-	const handleSubmit = (): void => {
-		if (!formData.name.trim() || !formData.phone.trim()) return;
+	const handleFormSubmit = (formData: CustomerFormData): void => {
+		const customerData = {
+			name: formData.name,
+			phone: formData.phone,
+			gender: formData.gender,
+			...(formData.birthDate !== "" && { birthDate: formData.birthDate }),
+			...(formData.memo !== "" && { memo: formData.memo }),
+		};
 
-		if (editingCustomer) {
-			updateCustomer(editingCustomer.id, {
-				name: formData.name,
-				phone: formData.phone,
-				gender: formData.gender,
-				birthDate: formData.birthDate || undefined,
-				memo: formData.memo || undefined,
-			});
+		if (editingCustomer !== null) {
+			updateCustomer(editingCustomer.id, customerData);
 		} else {
-			addCustomer({
-				name: formData.name,
-				phone: formData.phone,
-				gender: formData.gender,
-				birthDate: formData.birthDate || undefined,
-				memo: formData.memo || undefined,
-			});
+			addCustomer(customerData);
 		}
-		closeModal();
 	};
 
 	const handleDeactivate = (id: string): void => {
@@ -113,11 +89,6 @@ export default function CustomersPage(): ReactElement {
 		if (confirm("정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
 			deleteCustomer(id);
 		}
-	};
-
-	const formatDate = (dateStr?: string): string => {
-		if (!dateStr) return "-";
-		return new Date(dateStr).toLocaleDateString("ko-KR");
 	};
 
 	const formatCurrency = (amount?: number): string => {
@@ -172,27 +143,36 @@ export default function CustomersPage(): ReactElement {
 			</div>
 
 			{/* Stats */}
-			<div className="mb-6 grid grid-cols-4 gap-4">
+			<div className="mb-6 grid grid-cols-5 gap-4">
 				<div className="rounded-xl border border-neutral-200 bg-white p-4">
 					<p className="text-sm text-neutral-500">전체 고객</p>
 					<p className="text-2xl font-bold text-neutral-800">{customers.length}</p>
 				</div>
 				<div className="rounded-xl border border-neutral-200 bg-white p-4">
+					<p className="text-sm text-neutral-500">VIP 고객</p>
+					<p className="text-2xl font-bold text-amber-600">
+						{customers.filter((c) => getCustomerTier(c.totalSpent) === "vip").length}
+					</p>
+				</div>
+				<div className="rounded-xl border border-neutral-200 bg-white p-4">
 					<p className="text-sm text-neutral-500">활성 고객</p>
 					<p className="text-2xl font-bold text-green-600">
-						{customers.filter((c) => c.status === "active").length}
+						{customers.filter((c) => getAutoStatus(c.lastVisitDate) === "active").length}
 					</p>
+					<p className="text-xs text-neutral-400">90일 이내 방문</p>
 				</div>
 				<div className="rounded-xl border border-neutral-200 bg-white p-4">
-					<p className="text-sm text-neutral-500">정액권 보유</p>
-					<p className="text-2xl font-bold text-orange-600">
-						{customers.filter((c) => c.storedValue !== undefined && c.storedValue > 0).length}
+					<p className="text-sm text-neutral-500">휴면 위험</p>
+					<p className="text-2xl font-bold text-red-500">
+						{customers.filter((c) => getAutoStatus(c.lastVisitDate) === "inactive").length}
 					</p>
+					<p className="text-xs text-neutral-400">90일 이상 미방문</p>
 				</div>
 				<div className="rounded-xl border border-neutral-200 bg-white p-4">
-					<p className="text-sm text-neutral-500">정기권 보유</p>
-					<p className="text-2xl font-bold text-purple-600">
-						{customers.filter((c) => c.membership !== undefined).length}
+					<p className="text-sm text-neutral-500">총 LTV</p>
+					<p className="text-2xl font-bold text-blue-600">
+						{(customers.reduce((sum, c) => sum + c.totalSpent, 0) / 10000).toFixed(0)}
+						만원
 					</p>
 				</div>
 			</div>
@@ -205,6 +185,8 @@ export default function CustomersPage(): ReactElement {
 							<th className="px-6 py-4 text-left text-sm font-bold text-neutral-600">고객</th>
 							<th className="px-6 py-4 text-left text-sm font-bold text-neutral-600">연락처</th>
 							<th className="px-6 py-4 text-center text-sm font-bold text-neutral-600">방문</th>
+							<th className="px-6 py-4 text-center text-sm font-bold text-neutral-600">등급</th>
+							<th className="px-6 py-4 text-right text-sm font-bold text-neutral-600">LTV</th>
 							<th className="px-6 py-4 text-right text-sm font-bold text-neutral-600">정액권</th>
 							<th className="px-6 py-4 text-center text-sm font-bold text-neutral-600">정기권</th>
 							<th className="px-6 py-4 text-center text-sm font-bold text-neutral-600">상태</th>
@@ -215,10 +197,14 @@ export default function CustomersPage(): ReactElement {
 						{filteredCustomers.map((customer) => (
 							<tr
 								key={customer.id}
-								className={`transition-colors hover:bg-neutral-50 ${
+								onClick={() => {
+									setSelectedCustomer(customer);
+								}}
+								className={`cursor-pointer transition-colors hover:bg-neutral-50 ${
 									customer.status === "inactive" ? "opacity-60" : ""
 								}`}
 							>
+								{/* 고객 */}
 								<td className="px-6 py-4">
 									<div className="flex items-center gap-3">
 										<div className="bg-primary-100 text-primary-600 flex h-10 w-10 items-center justify-center rounded-full font-bold">
@@ -226,7 +212,7 @@ export default function CustomersPage(): ReactElement {
 										</div>
 										<div>
 											<p className="font-medium text-neutral-800">{customer.name}</p>
-											{customer.memo && (
+											{customer.memo !== undefined && customer.memo !== "" && (
 												<p className="mt-0.5 max-w-[200px] truncate text-xs text-neutral-400">
 													{customer.memo}
 												</p>
@@ -234,21 +220,44 @@ export default function CustomersPage(): ReactElement {
 										</div>
 									</div>
 								</td>
+								{/* 연락처 */}
 								<td className="px-6 py-4 text-neutral-600">{customer.phone}</td>
+								{/* 방문 */}
 								<td className="px-6 py-4 text-center">
 									<div>
 										<span className="font-medium text-neutral-800">{customer.visitCount}회</span>
-										{customer.lastVisitDate && (
+										{customer.lastVisitDate !== undefined && customer.lastVisitDate !== "" && (
 											<p className="text-xs text-neutral-400">
-												최근 {formatDate(customer.lastVisitDate)}
+												{getDaysSinceLastVisit(customer.lastVisitDate)}일 전
 											</p>
 										)}
 									</div>
 								</td>
+								{/* 등급 */}
+								<td className="px-6 py-4 text-center">
+									{(() => {
+										const tier = getCustomerTier(customer.totalSpent);
+										const config = tierConfig[tier];
+										return (
+											<span
+												className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${config.bgColor} ${config.color}`}
+											>
+												{config.label}
+											</span>
+										);
+									})()}
+								</td>
+								{/* LTV */}
+								<td className="px-6 py-4 text-right">
+									<span className="font-medium text-neutral-800">
+										{formatCurrency(customer.totalSpent)}
+									</span>
+								</td>
+								{/* 정액권 */}
 								<td className="px-6 py-4 text-right">
 									<span
 										className={
-											customer.storedValue && customer.storedValue > 0
+											customer.storedValue !== undefined && customer.storedValue > 0
 												? "font-medium text-orange-600"
 												: "text-neutral-400"
 										}
@@ -256,8 +265,9 @@ export default function CustomersPage(): ReactElement {
 										{formatCurrency(customer.storedValue)}
 									</span>
 								</td>
+								{/* 정기권 */}
 								<td className="px-6 py-4 text-center">
-									{customer.membership ? (
+									{customer.membership !== undefined ? (
 										<span className="rounded-full bg-purple-100 px-2.5 py-1 text-xs font-medium text-purple-700">
 											{customer.membership.name} (
 											{customer.membership.total - customer.membership.used}/
@@ -277,7 +287,8 @@ export default function CustomersPage(): ReactElement {
 								<td className="px-6 py-4">
 									<div className="flex items-center justify-center gap-1">
 										<button
-											onClick={() => {
+											onClick={(e) => {
+												e.stopPropagation();
 												openEditModal(customer);
 											}}
 											className="hover:bg-primary-50 hover:text-primary-500 rounded-lg p-2 text-neutral-400 transition-colors"
@@ -287,7 +298,8 @@ export default function CustomersPage(): ReactElement {
 										</button>
 										{customer.status === "active" ? (
 											<button
-												onClick={() => {
+												onClick={(e) => {
+													e.stopPropagation();
 													handleDeactivate(customer.id);
 												}}
 												className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-orange-50 hover:text-orange-500"
@@ -297,7 +309,8 @@ export default function CustomersPage(): ReactElement {
 											</button>
 										) : (
 											<button
-												onClick={() => {
+												onClick={(e) => {
+													e.stopPropagation();
 													handleReactivate(customer.id);
 												}}
 												className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-green-50 hover:text-green-500"
@@ -307,7 +320,8 @@ export default function CustomersPage(): ReactElement {
 											</button>
 										)}
 										<button
-											onClick={() => {
+											onClick={(e) => {
+												e.stopPropagation();
 												handleDelete(customer.id);
 											}}
 											className="rounded-lg p-2 text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-500"
@@ -327,9 +341,9 @@ export default function CustomersPage(): ReactElement {
 							person_search
 						</span>
 						<p className="text-neutral-400">
-							{searchQuery ? "검색 결과가 없습니다" : "등록된 고객이 없습니다"}
+							{searchQuery !== "" ? "검색 결과가 없습니다" : "등록된 고객이 없습니다"}
 						</p>
-						{!searchQuery && (
+						{searchQuery === "" && (
 							<button
 								onClick={openAddModal}
 								className="text-primary-500 mt-4 font-bold hover:underline"
@@ -341,128 +355,24 @@ export default function CustomersPage(): ReactElement {
 				)}
 			</div>
 
-			{/* Modal */}
-			{isModalOpen && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-					<div className="mx-4 w-full max-w-lg overflow-hidden rounded-2xl bg-white">
-						<div className="border-b border-neutral-200 p-6">
-							<h2 className="text-xl font-bold text-neutral-800">
-								{editingCustomer ? "고객 수정" : "고객 추가"}
-							</h2>
-						</div>
-						<div className="space-y-6 p-6">
-							{/* Name */}
-							<div>
-								<label className="mb-2 block text-sm font-bold text-neutral-700">
-									이름 <span className="text-red-500">*</span>
-								</label>
-								<input
-									type="text"
-									value={formData.name}
-									onChange={(e) => {
-										setFormData((prev) => ({
-											...prev,
-											name: e.target.value,
-										}));
-									}}
-									placeholder="고객 이름"
-									className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
-								/>
-							</div>
-
-							{/* Phone */}
-							<div>
-								<label className="mb-2 block text-sm font-bold text-neutral-700">
-									전화번호 <span className="text-red-500">*</span>
-								</label>
-								<input
-									type="tel"
-									value={formData.phone}
-									onChange={(e) => {
-										setFormData((prev) => ({
-											...prev,
-											phone: e.target.value,
-										}));
-									}}
-									placeholder="010-0000-0000"
-									className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
-								/>
-							</div>
-
-							{/* Gender & Birth Date */}
-							<div className="grid grid-cols-2 gap-4">
-								<div>
-									<label className="mb-2 block text-sm font-bold text-neutral-700">성별</label>
-									<select
-										value={formData.gender}
-										onChange={(e) => {
-											setFormData((prev) => ({
-												...prev,
-												gender: e.target.value as Gender,
-											}));
-										}}
-										className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
-									>
-										{genderOptions.map((option) => (
-											<option key={option.value} value={option.value}>
-												{option.label}
-											</option>
-										))}
-									</select>
-								</div>
-								<div>
-									<label className="mb-2 block text-sm font-bold text-neutral-700">생년월일</label>
-									<input
-										type="date"
-										value={formData.birthDate}
-										onChange={(e) => {
-											setFormData((prev) => ({
-												...prev,
-												birthDate: e.target.value,
-											}));
-										}}
-										className="focus:ring-primary-500 w-full rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
-									/>
-								</div>
-							</div>
-
-							{/* Memo */}
-							<div>
-								<label className="mb-2 block text-sm font-bold text-neutral-700">메모</label>
-								<textarea
-									value={formData.memo}
-									onChange={(e) => {
-										setFormData((prev) => ({
-											...prev,
-											memo: e.target.value,
-										}));
-									}}
-									placeholder="특이사항, 알러지 정보 등"
-									rows={3}
-									className="focus:ring-primary-500 w-full resize-none rounded-xl border border-neutral-200 px-4 py-3 focus:ring-2 focus:outline-none"
-								/>
-							</div>
-						</div>
-						<div className="flex justify-end gap-3 bg-neutral-50 p-6">
-							<button
-								type="button"
-								onClick={closeModal}
-								className="rounded-xl px-4 py-2.5 font-bold text-neutral-600 transition-colors hover:bg-neutral-200"
-							>
-								취소
-							</button>
-							<button
-								type="button"
-								onClick={handleSubmit}
-								disabled={!formData.name.trim() || !formData.phone.trim()}
-								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-							>
-								{editingCustomer ? "수정" : "추가"}
-							</button>
-						</div>
-					</div>
-				</div>
+			{/* Customer Detail Modal */}
+			{selectedCustomer !== null && (
+				<CustomerDetailModal
+					customer={selectedCustomer}
+					onClose={() => {
+						setSelectedCustomer(null);
+					}}
+				/>
 			)}
+
+			{/* Add/Edit Modal */}
+			<CustomerFormModal
+				isOpen={isModalOpen}
+				onClose={closeModal}
+				onSubmit={handleFormSubmit}
+				mode={editingCustomer !== null ? "edit" : "create"}
+				customer={editingCustomer}
+			/>
 		</div>
 	);
 }

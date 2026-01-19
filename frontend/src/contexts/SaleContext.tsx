@@ -631,6 +631,8 @@ interface SaleContextType {
 	addSale: (sale: Omit<SaleRecord, "id" | "createdAt">) => void;
 	updateSaleStatus: (saleId: string, status: SaleStatus) => void;
 	getSalesByCustomerId: (customerId: string) => SaleRecord[];
+	getSalesByDate: (date: string) => SaleRecord[];
+	voidSale: (saleId: string) => void;
 	getCustomerStats: (customerId: string) => CustomerStats;
 }
 
@@ -671,6 +673,21 @@ export function SaleProvider({ children }: { children: ReactNode }) {
 		},
 		[sales],
 	);
+
+	const getSalesByDate = useCallback(
+		(date: string): SaleRecord[] => {
+			return sales
+				.filter((sale) => sale.saleDate === date)
+				.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+		},
+		[sales],
+	);
+
+	const voidSale = useCallback((saleId: string): void => {
+		setSales((prev) =>
+			prev.map((sale) => (sale.id === saleId ? { ...sale, status: "voided" as const } : sale)),
+		);
+	}, []);
 
 	const getCustomerStats = useCallback(
 		(customerId: string): CustomerStats => {
@@ -749,9 +766,19 @@ export function SaleProvider({ children }: { children: ReactNode }) {
 			addSale,
 			updateSaleStatus,
 			getSalesByCustomerId,
+			getSalesByDate,
+			voidSale,
 			getCustomerStats,
 		}),
-		[sales, addSale, updateSaleStatus, getSalesByCustomerId, getCustomerStats],
+		[
+			sales,
+			addSale,
+			updateSaleStatus,
+			getSalesByCustomerId,
+			getSalesByDate,
+			voidSale,
+			getCustomerStats,
+		],
 	);
 
 	return <SaleContext.Provider value={value}>{children}</SaleContext.Provider>;

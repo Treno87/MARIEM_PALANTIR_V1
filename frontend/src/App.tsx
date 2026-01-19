@@ -7,7 +7,7 @@ import CustomersPage from "./components/customers/CustomersPage";
 import LandingPage from "./components/landing/LandingPage";
 import AppLayout from "./components/layout/AppLayout";
 import SalePage from "./components/sale/SalePage";
-import SalesPage from "./components/sales/SalesPage";
+import SalesListPage from "./components/sales/SalesListPage";
 import StaffPage from "./components/staff/StaffPage";
 import { CatalogProvider } from "./contexts/CatalogContext";
 import { CustomerProvider } from "./contexts/CustomerContext";
@@ -32,7 +32,7 @@ function App() {
 									<Route path="/catalog/events" element={<EventsPage />} />
 									{/* Placeholder routes */}
 									<Route path="/dashboard" element={<PlaceholderPage title="대시보드" />} />
-									<Route path="/sales" element={<SalesPage />} />
+									<Route path="/sales" element={<SalesListPage />} />
 									<Route path="/reports" element={<PlaceholderPage title="리포트" />} />
 									<Route path="/customers" element={<CustomersPage />} />
 									<Route path="/settings" element={<PlaceholderPage title="설정" />} />

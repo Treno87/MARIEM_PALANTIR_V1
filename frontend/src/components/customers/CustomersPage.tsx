@@ -7,6 +7,8 @@ import {
 	tierConfig,
 	useCustomers,
 } from "../../contexts/CustomerContext";
+import { useCreateCustomer, useUpdateCustomer } from "../../hooks/useCustomersApi";
+import { USE_API } from "../../lib/config";
 import CustomerDetailModal from "./CustomerDetailModal";
 import CustomerFormModal, { type CustomerFormData } from "./CustomerFormModal";
 
@@ -36,6 +38,11 @@ const statusConfig = {
 
 export default function CustomersPage(): ReactElement {
 	const { customers, addCustomer, updateCustomer, deleteCustomer } = useCustomers();
+
+	// API mutation hooks
+	const createCustomerMutation = useCreateCustomer();
+	const updateCustomerMutation = useUpdateCustomer();
+
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
 	const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -129,16 +136,27 @@ export default function CustomersPage(): ReactElement {
 		};
 
 		if (editingCustomer !== null) {
+			// 수정 모드
+			if (USE_API) {
+				updateCustomerMutation.mutate({
+					id: Number(editingCustomer.id),
+					data: customerData,
+				});
+			}
 			updateCustomer(editingCustomer.id, customerData);
 		} else {
+			// 생성 모드
+			if (USE_API) {
+				createCustomerMutation.mutate(customerData);
+			}
 			addCustomer(customerData);
 		}
 	};
 
 	const handleDeactivate = (id: string): void => {
-		if (confirm("이 고객을 비활성화 하시겠습니까?")) {
-			updateCustomer(id, { status: "inactive" });
-		}
+		if (!confirm("이 고객을 비활성화 하시겠습니까?")) return;
+
+		updateCustomer(id, { status: "inactive" });
 	};
 
 	const handleReactivate = (id: string): void => {
@@ -146,9 +164,9 @@ export default function CustomersPage(): ReactElement {
 	};
 
 	const handleDelete = (id: string): void => {
-		if (confirm("정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
-			deleteCustomer(id);
-		}
+		if (!confirm("정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) return;
+
+		deleteCustomer(id);
 	};
 
 	const formatCurrency = (amount?: number): string => {

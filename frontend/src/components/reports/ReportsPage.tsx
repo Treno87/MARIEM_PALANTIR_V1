@@ -1,11 +1,9 @@
 import { type ReactElement, useMemo, useState } from "react";
 import { useSales } from "../../contexts/SaleContext";
 import { useDailyReport, useMethodReport, useStaffReport } from "../../hooks/useReportsApi";
+import { USE_API } from "../../lib/config";
 import { getTodayDate } from "../../utils/date";
 import { formatCurrency } from "../../utils/format";
-
-// API 사용 여부 (환경 변수로 제어)
-const USE_API = import.meta.env["VITE_USE_API"] === "true";
 
 type PeriodFilter = "today" | "week" | "month";
 

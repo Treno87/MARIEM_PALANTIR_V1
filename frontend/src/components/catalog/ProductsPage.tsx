@@ -1,22 +1,13 @@
 import { useState } from "react";
+import { COLOR_OPTIONS, DEFAULT_COLOR } from "../../constants/colors";
 import { useCatalog } from "../../contexts/CatalogContext";
+import { useCreateProduct, useUpdateProduct } from "../../hooks/useProductsApi";
+import { USE_API } from "../../lib/config";
 import type { ProductBrand, ProductCategory, ProductItem } from "../sale/types";
-
-const DEFAULT_COLOR = "#00c875";
-const colorOptions = [
-	DEFAULT_COLOR,
-	"#fdab3d",
-	"#e2445c",
-	"#a25ddc",
-	"#0073ea",
-	"#ff7eb3",
-	"#00d2d2",
-	"#6b7280",
-];
 
 type ModalType = "category" | "brand" | "product" | null;
 
-export default function ProductsPage() {
+export default function ProductsPage(): React.ReactElement {
 	const {
 		productCategories,
 		addProductCategory,
@@ -29,6 +20,10 @@ export default function ProductsPage() {
 		updateProductItem,
 		deleteProductItem,
 	} = useCatalog();
+
+	// API mutation hooks (제품만 - 카테고리/브랜드는 API 미지원)
+	const createProductMutation = useCreateProduct();
+	const updateProductMutation = useUpdateProduct();
 
 	const [selectedCategory, setSelectedCategory] = useState<ProductCategory | null>(
 		productCategories[0] ?? null,
@@ -82,13 +77,13 @@ export default function ProductsPage() {
 		setModalType(null);
 	};
 
-	const handleDeleteCategory = (id: string) => {
-		if (confirm("카테고리와 모든 브랜드/상품이 삭제됩니다. 계속하시겠습니까?")) {
-			deleteProductCategory(id);
-			if (selectedCategory?.id === id) {
-				setSelectedCategory(productCategories.find((c) => c.id !== id) ?? null);
-				setSelectedBrand(null);
-			}
+	const handleDeleteCategory = (id: string): void => {
+		if (!confirm("카테고리와 모든 브랜드/상품이 삭제됩니다. 계속하시겠습니까?")) return;
+
+		deleteProductCategory(id);
+		if (selectedCategory?.id === id) {
+			setSelectedCategory(productCategories.find((c) => c.id !== id) ?? null);
+			setSelectedBrand(null);
 		}
 	};
 
@@ -120,13 +115,13 @@ export default function ProductsPage() {
 		setModalType(null);
 	};
 
-	const handleDeleteBrand = (brandId: string) => {
-		if (!selectedCategory) return;
-		if (confirm("브랜드와 모든 상품이 삭제됩니다. 계속하시겠습니까?")) {
-			deleteProductBrand(selectedCategory.id, brandId);
-			if (selectedBrand?.id === brandId) {
-				setSelectedBrand(null);
-			}
+	const handleDeleteBrand = (brandId: string): void => {
+		if (selectedCategory === null) return;
+		if (!confirm("브랜드와 모든 상품이 삭제됩니다. 계속하시겠습니까?")) return;
+
+		deleteProductBrand(selectedCategory.id, brandId);
+		if (selectedBrand?.id === brandId) {
+			setSelectedBrand(null);
 		}
 	};
 
@@ -143,19 +138,38 @@ export default function ProductsPage() {
 		setModalType("product");
 	};
 
-	const handleProductSubmit = () => {
+	const handleProductSubmit = (): void => {
 		if (!productForm.name.trim() || !productForm.price || !selectedCategory || !selectedBrand)
 			return;
 
 		const price = parseInt(productForm.price);
 		if (isNaN(price)) return;
 
-		if (editingProduct) {
+		if (editingProduct !== null) {
+			// 수정 모드
+			if (USE_API) {
+				updateProductMutation.mutate({
+					id: Number(editingProduct.id),
+					data: {
+						name: productForm.name,
+						default_retail_unit_price: price,
+					},
+				});
+			}
 			updateProductItem(selectedCategory.id, selectedBrand.id, editingProduct.id, {
 				name: productForm.name,
 				price,
 			});
 		} else {
+			// 생성 모드
+			if (USE_API) {
+				createProductMutation.mutate({
+					name: productForm.name,
+					kind: selectedCategory.name,
+					vendor_id: Number(selectedBrand.id),
+					default_retail_unit_price: price,
+				});
+			}
 			addProductItem(selectedCategory.id, selectedBrand.id, {
 				name: productForm.name,
 				price,
@@ -164,11 +178,11 @@ export default function ProductsPage() {
 		setModalType(null);
 	};
 
-	const handleDeleteProduct = (productId: string) => {
-		if (!selectedCategory || !selectedBrand) return;
-		if (confirm("이 상품을 삭제하시겠습니까?")) {
-			deleteProductItem(selectedCategory.id, selectedBrand.id, productId);
-		}
+	const handleDeleteProduct = (productId: string): void => {
+		if (selectedCategory === null || selectedBrand === null) return;
+		if (!confirm("이 상품을 삭제하시겠습니까?")) return;
+
+		deleteProductItem(selectedCategory.id, selectedBrand.id, productId);
 	};
 
 	return (
@@ -389,7 +403,7 @@ export default function ProductsPage() {
 							<div>
 								<label className="mb-2 block text-sm font-bold text-neutral-700">색상</label>
 								<div className="flex flex-wrap gap-3">
-									{colorOptions.map((color) => (
+									{COLOR_OPTIONS.map((color) => (
 										<button
 											key={color}
 											onClick={() => {

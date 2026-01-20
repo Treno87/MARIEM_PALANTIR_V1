@@ -4,10 +4,8 @@
  */
 import { useMemo } from "react";
 import { useSales } from "../contexts/SaleContext";
+import { USE_API } from "../lib/config";
 import { useSalesList, useVoidSale } from "./useSalesApi";
-
-// API 사용 여부 (환경 변수로 제어)
-const USE_API = import.meta.env["VITE_USE_API"] === "true";
 
 interface UseSalesDataResult {
 	/** 필터링된 판매 목록 */

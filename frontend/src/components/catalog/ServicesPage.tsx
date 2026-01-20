@@ -1,20 +1,16 @@
 import { useState } from "react";
+import { COLOR_OPTIONS, DEFAULT_COLOR } from "../../constants/colors";
 import { useCatalog } from "../../contexts/CatalogContext";
+import {
+	useCreateService,
+	useCreateServiceCategory,
+	useUpdateService,
+	useUpdateServiceCategory,
+} from "../../hooks/useServicesApi";
+import { USE_API } from "../../lib/config";
 import type { ServiceCategory, ServiceItem } from "../sale/types";
 
-const DEFAULT_COLOR = "#00c875";
-const colorOptions = [
-	DEFAULT_COLOR,
-	"#fdab3d",
-	"#e2445c",
-	"#a25ddc",
-	"#0073ea",
-	"#ff7eb3",
-	"#00d2d2",
-	"#6b7280",
-];
-
-export default function ServicesPage() {
+export default function ServicesPage(): React.ReactElement {
 	const {
 		serviceCategories,
 		addServiceCategory,
@@ -24,6 +20,12 @@ export default function ServicesPage() {
 		updateServiceItem,
 		deleteServiceItem,
 	} = useCatalog();
+
+	// API mutation hooks
+	const createCategoryMutation = useCreateServiceCategory();
+	const updateCategoryMutation = useUpdateServiceCategory();
+	const createServiceMutation = useCreateService();
+	const updateServiceMutation = useUpdateService();
 
 	const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | null>(
 		serviceCategories[0] ?? null,
@@ -56,15 +58,26 @@ export default function ServicesPage() {
 		setIsCategoryModalOpen(true);
 	};
 
-	const handleCategorySubmit = () => {
+	const handleCategorySubmit = (): void => {
 		if (!categoryForm.name.trim()) return;
 
-		if (editingCategory) {
+		if (editingCategory !== null) {
+			// 수정 모드
+			if (USE_API) {
+				updateCategoryMutation.mutate({
+					id: Number(editingCategory.id),
+					data: { name: categoryForm.name },
+				});
+			}
 			updateServiceCategory(editingCategory.id, {
 				name: categoryForm.name,
 				color: categoryForm.color,
 			});
 		} else {
+			// 생성 모드
+			if (USE_API) {
+				createCategoryMutation.mutate({ name: categoryForm.name });
+			}
 			addServiceCategory({
 				name: categoryForm.name,
 				color: categoryForm.color,
@@ -73,12 +86,12 @@ export default function ServicesPage() {
 		setIsCategoryModalOpen(false);
 	};
 
-	const handleDeleteCategory = (id: string) => {
-		if (confirm("카테고리와 포함된 모든 시술이 삭제됩니다. 계속하시겠습니까?")) {
-			deleteServiceCategory(id);
-			if (selectedCategory?.id === id) {
-				setSelectedCategory(serviceCategories.find((c) => c.id !== id) ?? null);
-			}
+	const handleDeleteCategory = (id: string): void => {
+		if (!confirm("카테고리와 포함된 모든 시술이 삭제됩니다. 계속하시겠습니까?")) return;
+
+		deleteServiceCategory(id);
+		if (selectedCategory?.id === id) {
+			setSelectedCategory(serviceCategories.find((c) => c.id !== id) ?? null);
 		}
 	};
 
@@ -99,19 +112,38 @@ export default function ServicesPage() {
 		setIsItemModalOpen(true);
 	};
 
-	const handleItemSubmit = () => {
+	const handleItemSubmit = (): void => {
 		if (!itemForm.name.trim() || !itemForm.price || !selectedCategory) return;
 
 		const price = parseInt(itemForm.price);
 		if (isNaN(price)) return;
 
-		if (editingItem) {
+		if (editingItem !== null) {
+			// 수정 모드
+			if (USE_API) {
+				updateServiceMutation.mutate({
+					id: Number(editingItem.id),
+					data: {
+						name: itemForm.name,
+						list_price: price,
+						service_category_id: Number(selectedCategory.id),
+					},
+				});
+			}
 			updateServiceItem(selectedCategory.id, editingItem.id, {
 				name: itemForm.name,
 				price,
 				membershipEligible: itemForm.membershipEligible,
 			});
 		} else {
+			// 생성 모드
+			if (USE_API) {
+				createServiceMutation.mutate({
+					name: itemForm.name,
+					list_price: price,
+					service_category_id: Number(selectedCategory.id),
+				});
+			}
 			addServiceItem(selectedCategory.id, {
 				name: itemForm.name,
 				price,
@@ -121,11 +153,11 @@ export default function ServicesPage() {
 		setIsItemModalOpen(false);
 	};
 
-	const handleDeleteItem = (itemId: string) => {
-		if (!selectedCategory) return;
-		if (confirm("이 시술을 삭제하시겠습니까?")) {
-			deleteServiceItem(selectedCategory.id, itemId);
-		}
+	const handleDeleteItem = (itemId: string): void => {
+		if (selectedCategory === null) return;
+		if (!confirm("이 시술을 삭제하시겠습니까?")) return;
+
+		deleteServiceItem(selectedCategory.id, itemId);
 	};
 
 	// Update selectedCategory when categories change
@@ -305,7 +337,7 @@ export default function ServicesPage() {
 							<div>
 								<label className="mb-2 block text-sm font-bold text-neutral-700">색상</label>
 								<div className="flex flex-wrap gap-3">
-									{colorOptions.map((color) => (
+									{COLOR_OPTIONS.map((color) => (
 										<button
 											key={color}
 											onClick={() => {

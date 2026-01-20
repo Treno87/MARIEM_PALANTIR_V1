@@ -15,8 +15,22 @@ function createTestQueryClient(): QueryClient {
 				retry: false,
 				gcTime: 0,
 			},
+			mutations: {
+				retry: false,
+			},
 		},
 	});
+}
+
+/**
+ * renderHook 테스트용 QueryClient 래퍼
+ * API 훅 테스트에서 사용
+ */
+export function createQueryWrapper(): ({ children }: { children: ReactNode }) => ReactNode {
+	const queryClient = createTestQueryClient();
+	return ({ children }: { children: ReactNode }) => (
+		<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+	);
 }
 
 interface AllProvidersProps {

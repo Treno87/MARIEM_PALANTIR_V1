@@ -9,13 +9,25 @@ import type {
 	StoredValueOption,
 } from "./types";
 
+export type CatalogModalType =
+	| "serviceCategory"
+	| "serviceItem"
+	| "productCategory"
+	| "productBrand"
+	| "productItem";
+
+export interface CatalogModalContext {
+	categoryId?: string;
+	brandId?: string;
+}
+
 interface CatalogTabsProps {
 	serviceCategories: ServiceCategory[];
 	productCategories: ProductCategory[];
 	storedValueOptions: StoredValueOption[];
 	membershipOptions: MembershipOption[];
 	onAddToCart: (item: CartItem) => void;
-	onShowAddModal: (type: string) => void;
+	onOpenModal: (type: CatalogModalType, context?: CatalogModalContext) => void;
 }
 
 export function CatalogTabs({
@@ -24,7 +36,7 @@ export function CatalogTabs({
 	storedValueOptions,
 	membershipOptions,
 	onAddToCart,
-	onShowAddModal,
+	onOpenModal,
 }: CatalogTabsProps): ReactElement {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("service");
 	const [selectedServiceCategory, setSelectedServiceCategory] = useState<string>("cat1");
@@ -165,7 +177,7 @@ export function CatalogTabs({
 						))}
 						<button
 							onClick={() => {
-								onShowAddModal("serviceCategory");
+								onOpenModal("serviceCategory");
 							}}
 							className="flex h-6 w-6 items-center justify-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
 						>
@@ -194,7 +206,7 @@ export function CatalogTabs({
 								))}
 								<button
 									onClick={() => {
-										onShowAddModal("serviceItem");
+										onOpenModal("serviceItem", { categoryId: category.id });
 									}}
 									className="flex h-6 w-6 items-center justify-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
 								>
@@ -231,7 +243,7 @@ export function CatalogTabs({
 						))}
 						<button
 							onClick={() => {
-								onShowAddModal("productCategory");
+								onOpenModal("productCategory");
 							}}
 							className="flex h-6 w-6 items-center justify-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
 						>
@@ -259,7 +271,9 @@ export function CatalogTabs({
 							))}
 						<button
 							onClick={() => {
-								onShowAddModal("brand");
+								onOpenModal("productBrand", {
+									categoryId: selectedProductCategory,
+								});
 							}}
 							className="flex h-6 w-6 items-center justify-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
 						>
@@ -270,7 +284,7 @@ export function CatalogTabs({
 					{(() => {
 						const category = productCategories.find((c) => c.id === selectedProductCategory);
 						const brand = category?.brands.find((b) => b.id === selectedProductBrand);
-						if (!brand) return null;
+						if (!brand || !selectedProductBrand) return null;
 						return (
 							<div className="flex flex-wrap gap-2">
 								{brand.items.map((item) => (
@@ -289,7 +303,10 @@ export function CatalogTabs({
 								))}
 								<button
 									onClick={() => {
-										onShowAddModal("productItem");
+										onOpenModal("productItem", {
+											categoryId: selectedProductCategory,
+											brandId: selectedProductBrand,
+										});
 									}}
 									className="flex h-6 w-6 items-center justify-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
 								>

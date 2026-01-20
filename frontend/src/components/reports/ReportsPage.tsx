@@ -1,7 +1,8 @@
 import { type ReactElement, useMemo, useState } from "react";
 import { useSales } from "../../contexts/SaleContext";
+import { formatCurrency } from "../../utils/format";
 
-type PeriodFilter = "today" | "week" | "month" | "custom";
+type PeriodFilter = "today" | "week" | "month";
 
 export default function ReportsPage(): ReactElement {
 	const { sales } = useSales();
@@ -148,10 +149,6 @@ export default function ReportsPage(): ReactElement {
 			returningPercent: total > 0 ? Math.round((returningCount / total) * 100) : 0,
 		};
 	}, [filteredSales]);
-
-	const formatCurrency = (amount: number): string => {
-		return amount.toLocaleString() + "원";
-	};
 
 	const periodButtons: { key: PeriodFilter; label: string }[] = [
 		{ key: "today", label: "오늘" },

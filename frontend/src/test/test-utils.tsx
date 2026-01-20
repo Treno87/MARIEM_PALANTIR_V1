@@ -1,5 +1,6 @@
 import { type RenderOptions, render } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
+import { MemoryRouter } from "react-router-dom";
 import { CatalogProvider } from "../contexts/CatalogContext";
 import { CustomerProvider } from "../contexts/CustomerContext";
 import { SaleProvider } from "../contexts/SaleContext";
@@ -11,13 +12,15 @@ interface AllProvidersProps {
 
 function AllProviders({ children }: AllProvidersProps): ReactElement {
 	return (
-		<StaffProvider>
-			<CatalogProvider>
-				<CustomerProvider>
-					<SaleProvider>{children}</SaleProvider>
-				</CustomerProvider>
-			</CatalogProvider>
-		</StaffProvider>
+		<MemoryRouter>
+			<StaffProvider>
+				<CatalogProvider>
+					<CustomerProvider>
+						<SaleProvider>{children}</SaleProvider>
+					</CustomerProvider>
+				</CatalogProvider>
+			</StaffProvider>
+		</MemoryRouter>
 	);
 }
 

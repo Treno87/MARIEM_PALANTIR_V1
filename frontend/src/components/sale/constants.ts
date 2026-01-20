@@ -12,6 +12,20 @@ import type {
 	StoredValueOption,
 } from "./types";
 
+// 공통 색상 옵션
+export const COLOR_OPTIONS = [
+	"#00c875",
+	"#fdab3d",
+	"#e2445c",
+	"#a25ddc",
+	"#0073ea",
+	"#ff7eb3",
+	"#00d2d2",
+	"#6b7280",
+] as const;
+
+export const DEFAULT_COLOR = COLOR_OPTIONS[0];
+
 export const initialCustomers: Customer[] = [
 	{
 		id: "1",

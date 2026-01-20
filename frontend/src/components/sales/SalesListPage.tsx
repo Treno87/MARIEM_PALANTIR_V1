@@ -1,5 +1,10 @@
-import { type ReactElement, useState } from "react";
+import { type ReactElement, useMemo, useState } from "react";
 import { useSales } from "../../contexts/SaleContext";
+import { formatCurrency } from "../../utils/format";
+
+// 정렬 관련 타입
+type SalesSortKey = "date" | "customer" | "staff" | "total" | "status";
+type SortDirection = "asc" | "desc";
 
 const statusConfig = {
 	completed: {
@@ -15,12 +20,97 @@ const statusConfig = {
 	},
 } as const;
 
-export default function SalesListPage(): ReactElement {
-	const { sales, voidSale, getSalesByDate } = useSales();
-	const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
-	const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+// 시술별 색상 설정
+const serviceColorConfig: Record<string, { bg: string; text: string }> = {
+	// 커트 계열 - 파란색
+	여자커트: { bg: "bg-blue-100", text: "text-blue-700" },
+	남자커트: { bg: "bg-blue-100", text: "text-blue-700" },
+	// 펌 계열 - 보라색
+	디지털펌: { bg: "bg-purple-100", text: "text-purple-700" },
+	매직: { bg: "bg-purple-100", text: "text-purple-700" },
+	남자펌: { bg: "bg-purple-100", text: "text-purple-700" },
+	// 염색 계열 - 핑크색
+	전체염색: { bg: "bg-pink-100", text: "text-pink-700" },
+	뿌리염색: { bg: "bg-pink-100", text: "text-pink-700" },
+	// 케어 계열 - 초록색
+	클리닉: { bg: "bg-emerald-100", text: "text-emerald-700" },
+	두피케어: { bg: "bg-emerald-100", text: "text-emerald-700" },
+	// 스타일링 - 하늘색
+	스타일링: { bg: "bg-sky-100", text: "text-sky-700" },
+	// 충전 - 노란색
+	"정액권 30만원": { bg: "bg-amber-100", text: "text-amber-700" },
+};
 
-	const filteredSales = getSalesByDate(selectedDate);
+// 제품 기본 색상 - 주황색
+const productColor = { bg: "bg-orange-100", text: "text-orange-700" };
+// 기본 색상 - 회색
+const defaultColor = { bg: "bg-neutral-100", text: "text-neutral-600" };
+
+const getServiceColor = (name: string, type: string): { bg: string; text: string } => {
+	if (type === "product") return productColor;
+	if (type === "topup") return { bg: "bg-amber-100", text: "text-amber-700" };
+	return serviceColorConfig[name] ?? defaultColor;
+};
+
+// 이번 달 시작일 계산
+function getMonthStartDate(): string {
+	const today = new Date();
+	return new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split("T")[0];
+}
+
+// 오늘 날짜
+function getTodayDate(): string {
+	return new Date().toISOString().split("T")[0];
+}
+
+export default function SalesListPage(): ReactElement {
+	const { sales, voidSale, getSalesByDateRange } = useSales();
+	const [startDate, setStartDate] = useState<string>(getMonthStartDate());
+	const [endDate, setEndDate] = useState<string>(getTodayDate());
+	const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+	const [sortKey, setSortKey] = useState<SalesSortKey>("date");
+	const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+	const filteredSales = getSalesByDateRange(startDate, endDate);
+
+	// 정렬된 거래 목록
+	const sortedSales = useMemo(() => {
+		return [...filteredSales].sort((a, b) => {
+			let comparison = 0;
+			switch (sortKey) {
+				case "date":
+					comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+					break;
+				case "customer":
+					comparison = a.customer.name.localeCompare(b.customer.name, "ko");
+					break;
+				case "staff":
+					comparison = a.staff.name.localeCompare(b.staff.name, "ko");
+					break;
+				case "total":
+					comparison = a.total - b.total;
+					break;
+				case "status":
+					comparison = a.status.localeCompare(b.status);
+					break;
+			}
+			return sortDirection === "asc" ? comparison : -comparison;
+		});
+	}, [filteredSales, sortKey, sortDirection]);
+
+	const handleSort = (key: SalesSortKey): void => {
+		if (sortKey === key) {
+			setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+		} else {
+			setSortKey(key);
+			setSortDirection("asc");
+		}
+	};
+
+	const getSortIcon = (key: SalesSortKey): string => {
+		if (sortKey !== key) return "unfold_more";
+		return sortDirection === "asc" ? "keyboard_arrow_up" : "keyboard_arrow_down";
+	};
 	const selectedSale = selectedSaleId !== null ? sales.find((s) => s.id === selectedSaleId) : null;
 
 	const totalAmount = filteredSales
@@ -33,15 +123,13 @@ export default function SalesListPage(): ReactElement {
 		}
 	};
 
-	const formatTime = (dateString: string): string => {
-		return new Date(dateString).toLocaleTimeString("ko-KR", {
-			hour: "2-digit",
-			minute: "2-digit",
-		});
-	};
-
-	const formatCurrency = (amount: number): string => {
-		return amount.toLocaleString() + "원";
+	const formatDateTime = (dateString: string): string => {
+		const date = new Date(dateString);
+		const month = date.getMonth() + 1;
+		const day = date.getDate();
+		const hours = date.getHours().toString().padStart(2, "0");
+		const minutes = date.getMinutes().toString().padStart(2, "0");
+		return `${String(month)}/${String(day)} ${hours}:${minutes}`;
 	};
 
 	const getInitials = (name: string): string => {
@@ -55,14 +143,27 @@ export default function SalesListPage(): ReactElement {
 				<h1 className="text-2xl font-bold text-neutral-800">거래 내역</h1>
 				<div className="flex items-center gap-4">
 					<label className="flex items-center gap-2">
-						<span className="text-sm text-neutral-600">날짜</span>
+						<span className="text-sm text-neutral-600">시작</span>
 						<input
 							type="date"
-							value={selectedDate}
+							value={startDate}
 							onChange={(e) => {
-								setSelectedDate(e.target.value);
+								setStartDate(e.target.value);
 							}}
-							aria-label="날짜"
+							aria-label="시작 날짜"
+							className="focus:border-primary-500 focus:ring-primary-500 rounded-lg border border-neutral-200 px-3 py-2 focus:ring-2 focus:outline-none"
+						/>
+					</label>
+					<span className="text-neutral-400">~</span>
+					<label className="flex items-center gap-2">
+						<span className="text-sm text-neutral-600">종료</span>
+						<input
+							type="date"
+							value={endDate}
+							onChange={(e) => {
+								setEndDate(e.target.value);
+							}}
+							aria-label="종료 날짜"
 							className="focus:border-primary-500 focus:ring-primary-500 rounded-lg border border-neutral-200 px-3 py-2 focus:ring-2 focus:outline-none"
 						/>
 					</label>
@@ -92,17 +193,77 @@ export default function SalesListPage(): ReactElement {
 				<table className="w-full">
 					<thead>
 						<tr className="border-b border-neutral-200 bg-neutral-50">
-							<th className="px-4 py-3 text-left text-sm font-bold text-neutral-600">시간</th>
-							<th className="px-4 py-3 text-left text-sm font-bold text-neutral-600">고객</th>
-							<th className="px-4 py-3 text-left text-sm font-bold text-neutral-600">담당</th>
+							<th
+								onClick={() => {
+									handleSort("date");
+								}}
+								className="cursor-pointer px-4 py-3 text-left text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-100"
+							>
+								<div className="flex items-center gap-1">
+									날짜/시간
+									<span className="material-symbols-outlined text-base text-neutral-400">
+										{getSortIcon("date")}
+									</span>
+								</div>
+							</th>
+							<th
+								onClick={() => {
+									handleSort("customer");
+								}}
+								className="cursor-pointer px-4 py-3 text-left text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-100"
+							>
+								<div className="flex items-center gap-1">
+									고객
+									<span className="material-symbols-outlined text-base text-neutral-400">
+										{getSortIcon("customer")}
+									</span>
+								</div>
+							</th>
+							<th
+								onClick={() => {
+									handleSort("staff");
+								}}
+								className="cursor-pointer px-4 py-3 text-left text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-100"
+							>
+								<div className="flex items-center gap-1">
+									담당
+									<span className="material-symbols-outlined text-base text-neutral-400">
+										{getSortIcon("staff")}
+									</span>
+								</div>
+							</th>
 							<th className="px-4 py-3 text-left text-sm font-bold text-neutral-600">항목</th>
-							<th className="px-4 py-3 text-right text-sm font-bold text-neutral-600">금액</th>
-							<th className="px-4 py-3 text-center text-sm font-bold text-neutral-600">상태</th>
+							<th
+								onClick={() => {
+									handleSort("total");
+								}}
+								className="cursor-pointer px-4 py-3 text-right text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-100"
+							>
+								<div className="flex items-center justify-end gap-1">
+									금액
+									<span className="material-symbols-outlined text-base text-neutral-400">
+										{getSortIcon("total")}
+									</span>
+								</div>
+							</th>
+							<th
+								onClick={() => {
+									handleSort("status");
+								}}
+								className="cursor-pointer px-4 py-3 text-center text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-100"
+							>
+								<div className="flex items-center justify-center gap-1">
+									상태
+									<span className="material-symbols-outlined text-base text-neutral-400">
+										{getSortIcon("status")}
+									</span>
+								</div>
+							</th>
 							<th className="px-4 py-3 text-center text-sm font-bold text-neutral-600">관리</th>
 						</tr>
 					</thead>
 					<tbody className="divide-y divide-neutral-100">
-						{filteredSales.map((sale) => (
+						{sortedSales.map((sale) => (
 							<tr
 								key={sale.id}
 								onClick={() => {
@@ -112,7 +273,7 @@ export default function SalesListPage(): ReactElement {
 									sale.status === "voided" ? "opacity-60" : ""
 								}`}
 							>
-								<td className="px-4 py-3 text-neutral-600">{formatTime(sale.createdAt)}</td>
+								<td className="px-4 py-3 text-neutral-600">{formatDateTime(sale.createdAt)}</td>
 								<td className="px-4 py-3">
 									<div className="flex items-center gap-2">
 										<div
@@ -135,15 +296,18 @@ export default function SalesListPage(): ReactElement {
 								</td>
 								<td className="px-4 py-3">
 									<div className="flex flex-wrap gap-1">
-										{sale.items.slice(0, 3).map((item, idx) => (
-											<span
-												key={idx}
-												className="rounded bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600"
-											>
-												{item.name}
-												{item.quantity > 1 && ` x${String(item.quantity)}`}
-											</span>
-										))}
+										{sale.items.slice(0, 3).map((item, idx) => {
+											const color = getServiceColor(item.name, item.type);
+											return (
+												<span
+													key={idx}
+													className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${color.bg} ${color.text}`}
+												>
+													{item.name}
+													{item.quantity > 1 && ` x${String(item.quantity)}`}
+												</span>
+											);
+										})}
 										{sale.items.length > 3 && (
 											<span className="text-xs text-neutral-400">+{sale.items.length - 3}</span>
 										)}

@@ -24,7 +24,7 @@ describe("SalePage", () => {
 
 		it("디자이너 선택 영역이 표시된다", () => {
 			render(<SalePage />);
-			expect(screen.getByText("담당")).toBeInTheDocument();
+			expect(screen.getByText("디자이너")).toBeInTheDocument();
 		});
 
 		it("시술 탭이 기본으로 선택되어 시술 카테고리가 표시된다", () => {

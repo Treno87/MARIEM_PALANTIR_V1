@@ -1,4 +1,4 @@
-import { type ReactElement, useState } from "react";
+import { type ReactElement, useMemo, useState } from "react";
 import {
 	type Customer,
 	getAutoStatus,
@@ -9,6 +9,17 @@ import {
 } from "../../contexts/CustomerContext";
 import CustomerDetailModal from "./CustomerDetailModal";
 import CustomerFormModal, { type CustomerFormData } from "./CustomerFormModal";
+
+// 정렬 관련 타입
+type CustomerSortKey =
+	| "name"
+	| "phone"
+	| "visitCount"
+	| "tier"
+	| "totalSpent"
+	| "storedValue"
+	| "status";
+type SortDirection = "asc" | "desc";
 
 const statusConfig = {
 	active: {
@@ -32,6 +43,8 @@ export default function CustomersPage(): ReactElement {
 	// 필터 및 검색
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showInactive, setShowInactive] = useState(false);
+	const [sortKey, setSortKey] = useState<CustomerSortKey>("name");
+	const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
 	const filteredCustomers = customers.filter((c) => {
 		// 상태 필터
@@ -43,6 +56,53 @@ export default function CustomersPage(): ReactElement {
 		}
 		return true;
 	});
+
+	// 정렬된 고객 목록
+	const sortedCustomers = useMemo(() => {
+		const tierOrder = { vip: 3, gold: 2, silver: 1, bronze: 0 };
+		return [...filteredCustomers].sort((a, b) => {
+			let comparison = 0;
+			switch (sortKey) {
+				case "name":
+					comparison = a.name.localeCompare(b.name, "ko");
+					break;
+				case "phone":
+					comparison = a.phone.localeCompare(b.phone);
+					break;
+				case "visitCount":
+					comparison = a.visitCount - b.visitCount;
+					break;
+				case "tier":
+					comparison =
+						tierOrder[getCustomerTier(a.totalSpent)] - tierOrder[getCustomerTier(b.totalSpent)];
+					break;
+				case "totalSpent":
+					comparison = a.totalSpent - b.totalSpent;
+					break;
+				case "storedValue":
+					comparison = (a.storedValue ?? 0) - (b.storedValue ?? 0);
+					break;
+				case "status":
+					comparison = a.status.localeCompare(b.status);
+					break;
+			}
+			return sortDirection === "asc" ? comparison : -comparison;
+		});
+	}, [filteredCustomers, sortKey, sortDirection]);
+
+	const handleSort = (key: CustomerSortKey): void => {
+		if (sortKey === key) {
+			setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+		} else {
+			setSortKey(key);
+			setSortDirection("asc");
+		}
+	};
+
+	const getSortIcon = (key: CustomerSortKey): string => {
+		if (sortKey !== key) return "unfold_more";
+		return sortDirection === "asc" ? "keyboard_arrow_up" : "keyboard_arrow_down";
+	};
 
 	const openAddModal = (): void => {
 		setEditingCustomer(null);
@@ -182,19 +242,103 @@ export default function CustomersPage(): ReactElement {
 				<table className="w-full">
 					<thead>
 						<tr className="border-b border-neutral-200 bg-neutral-50">
-							<th className="px-6 py-4 text-left text-sm font-bold text-neutral-600">고객</th>
-							<th className="px-6 py-4 text-left text-sm font-bold text-neutral-600">연락처</th>
-							<th className="px-6 py-4 text-center text-sm font-bold text-neutral-600">방문</th>
-							<th className="px-6 py-4 text-center text-sm font-bold text-neutral-600">등급</th>
-							<th className="px-6 py-4 text-right text-sm font-bold text-neutral-600">LTV</th>
-							<th className="px-6 py-4 text-right text-sm font-bold text-neutral-600">정액권</th>
+							<th
+								onClick={() => {
+									handleSort("name");
+								}}
+								className="cursor-pointer px-6 py-4 text-left text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-100"
+							>
+								<div className="flex items-center gap-1">
+									고객
+									<span className="material-symbols-outlined text-base text-neutral-400">
+										{getSortIcon("name")}
+									</span>
+								</div>
+							</th>
+							<th
+								onClick={() => {
+									handleSort("phone");
+								}}
+								className="cursor-pointer px-6 py-4 text-left text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-100"
+							>
+								<div className="flex items-center gap-1">
+									연락처
+									<span className="material-symbols-outlined text-base text-neutral-400">
+										{getSortIcon("phone")}
+									</span>
+								</div>
+							</th>
+							<th
+								onClick={() => {
+									handleSort("visitCount");
+								}}
+								className="cursor-pointer px-6 py-4 text-center text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-100"
+							>
+								<div className="flex items-center justify-center gap-1">
+									방문
+									<span className="material-symbols-outlined text-base text-neutral-400">
+										{getSortIcon("visitCount")}
+									</span>
+								</div>
+							</th>
+							<th
+								onClick={() => {
+									handleSort("tier");
+								}}
+								className="cursor-pointer px-6 py-4 text-center text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-100"
+							>
+								<div className="flex items-center justify-center gap-1">
+									등급
+									<span className="material-symbols-outlined text-base text-neutral-400">
+										{getSortIcon("tier")}
+									</span>
+								</div>
+							</th>
+							<th
+								onClick={() => {
+									handleSort("totalSpent");
+								}}
+								className="cursor-pointer px-6 py-4 text-right text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-100"
+							>
+								<div className="flex items-center justify-end gap-1">
+									LTV
+									<span className="material-symbols-outlined text-base text-neutral-400">
+										{getSortIcon("totalSpent")}
+									</span>
+								</div>
+							</th>
+							<th
+								onClick={() => {
+									handleSort("storedValue");
+								}}
+								className="cursor-pointer px-6 py-4 text-right text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-100"
+							>
+								<div className="flex items-center justify-end gap-1">
+									정액권
+									<span className="material-symbols-outlined text-base text-neutral-400">
+										{getSortIcon("storedValue")}
+									</span>
+								</div>
+							</th>
 							<th className="px-6 py-4 text-center text-sm font-bold text-neutral-600">정기권</th>
-							<th className="px-6 py-4 text-center text-sm font-bold text-neutral-600">상태</th>
+							<th
+								onClick={() => {
+									handleSort("status");
+								}}
+								className="cursor-pointer px-6 py-4 text-center text-sm font-bold text-neutral-600 transition-colors hover:bg-neutral-100"
+							>
+								<div className="flex items-center justify-center gap-1">
+									상태
+									<span className="material-symbols-outlined text-base text-neutral-400">
+										{getSortIcon("status")}
+									</span>
+								</div>
+							</th>
 							<th className="px-6 py-4 text-center text-sm font-bold text-neutral-600">관리</th>
 						</tr>
 					</thead>
 					<tbody className="divide-y divide-neutral-100">
-						{filteredCustomers.map((customer) => (
+						{sortedCustomers.map((customer) => (
 							<tr
 								key={customer.id}
 								onClick={() => {
@@ -335,7 +479,7 @@ export default function CustomersPage(): ReactElement {
 						))}
 					</tbody>
 				</table>
-				{filteredCustomers.length === 0 && (
+				{sortedCustomers.length === 0 && (
 					<div className="py-16 text-center">
 						<span className="material-symbols-outlined mb-4 text-6xl text-neutral-300">
 							person_search

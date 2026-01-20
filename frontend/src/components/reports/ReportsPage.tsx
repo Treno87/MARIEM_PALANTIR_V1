@@ -1,6 +1,11 @@
 import { type ReactElement, useMemo, useState } from "react";
 import { useSales } from "../../contexts/SaleContext";
+import { useDailyReport, useMethodReport, useStaffReport } from "../../hooks/useReportsApi";
+import { getTodayDate } from "../../utils/date";
 import { formatCurrency } from "../../utils/format";
+
+// API 사용 여부 (환경 변수로 제어)
+const USE_API = import.meta.env["VITE_USE_API"] === "true";
 
 type PeriodFilter = "today" | "week" | "month";
 
@@ -11,7 +16,8 @@ export default function ReportsPage(): ReactElement {
 	// 기간에 따른 날짜 범위 계산
 	const dateRange = useMemo(() => {
 		const today = new Date();
-		const endDate = today.toISOString().split("T")[0];
+		const endDateStr = today.toISOString().split("T")[0];
+		const endDate = endDateStr ?? "";
 		let startDate: string;
 
 		switch (periodFilter) {
@@ -21,20 +27,31 @@ export default function ReportsPage(): ReactElement {
 			case "week": {
 				const weekAgo = new Date(today);
 				weekAgo.setDate(today.getDate() - 7);
-				startDate = weekAgo.toISOString().split("T")[0];
+				const weekAgoStr = weekAgo.toISOString().split("T")[0];
+				startDate = weekAgoStr ?? "";
 				break;
 			}
 			case "month":
 			default: {
 				const monthAgo = new Date(today);
 				monthAgo.setMonth(today.getMonth() - 1);
-				startDate = monthAgo.toISOString().split("T")[0];
+				const monthAgoStr = monthAgo.toISOString().split("T")[0];
+				startDate = monthAgoStr ?? "";
 				break;
 			}
 		}
 
 		return { startDate, endDate };
 	}, [periodFilter]);
+
+	// API 훅 사용 (오늘 날짜 기준)
+	const todayDate = getTodayDate();
+	const { data: apiDailyReport, isLoading: dailyLoading } = useDailyReport(todayDate);
+	const { data: apiStaffReport } = useStaffReport(todayDate);
+	const { data: apiMethodReport } = useMethodReport(todayDate);
+
+	// API 로딩 상태
+	const isApiLoading = USE_API && dailyLoading;
 
 	// 기간 내 거래 필터링
 	const filteredSales = useMemo(() => {
@@ -48,6 +65,19 @@ export default function ReportsPage(): ReactElement {
 
 	// 매출 요약 계산
 	const summary = useMemo(() => {
+		// API 사용 시 API 데이터 반환 (오늘 기간일 때만)
+		if (USE_API && periodFilter === "today" && apiDailyReport !== undefined) {
+			return {
+				totalAmount: apiDailyReport.total_sales,
+				transactionCount: apiDailyReport.visit_count,
+				avgPerTransaction:
+					apiDailyReport.visit_count > 0
+						? Math.round(apiDailyReport.total_sales / apiDailyReport.visit_count)
+						: 0,
+			};
+		}
+
+		// Context 데이터 사용
 		const totalAmount = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
 		const transactionCount = filteredSales.length;
 		const avgPerTransaction = transactionCount > 0 ? Math.round(totalAmount / transactionCount) : 0;
@@ -57,10 +87,21 @@ export default function ReportsPage(): ReactElement {
 			transactionCount,
 			avgPerTransaction,
 		};
-	}, [filteredSales]);
+	}, [filteredSales, periodFilter, apiDailyReport]);
 
 	// 담당자별 매출
 	const staffSales = useMemo(() => {
+		// API 사용 시 API 데이터 반환 (오늘 기간일 때만)
+		if (USE_API && periodFilter === "today" && apiStaffReport !== undefined) {
+			return apiStaffReport.staff_sales.map((staff) => ({
+				name: staff.staff_name,
+				color: "#6b7280", // 기본 색상 (API에서 색상 미제공)
+				amount: staff.total_sales,
+				count: staff.item_count,
+			}));
+		}
+
+		// Context 데이터 사용
 		const staffMap = new Map<
 			string,
 			{ name: string; color: string; amount: number; count: number }
@@ -82,10 +123,19 @@ export default function ReportsPage(): ReactElement {
 		}
 
 		return Array.from(staffMap.values()).sort((a, b) => b.amount - a.amount);
-	}, [filteredSales]);
+	}, [filteredSales, periodFilter, apiStaffReport]);
 
 	// 결제수단별 매출
 	const paymentMethodSales = useMemo(() => {
+		// API 사용 시 API 데이터 반환 (오늘 기간일 때만)
+		if (USE_API && periodFilter === "today" && apiMethodReport !== undefined) {
+			return apiMethodReport.method_sales.map((method) => ({
+				method: method.method_label,
+				amount: method.total_amount,
+			}));
+		}
+
+		// Context 데이터 사용
 		const paymentMap = new Map<string, number>();
 
 		for (const sale of filteredSales) {
@@ -98,7 +148,7 @@ export default function ReportsPage(): ReactElement {
 		return Array.from(paymentMap.entries())
 			.map(([method, amount]) => ({ method, amount }))
 			.sort((a, b) => b.amount - a.amount);
-	}, [filteredSales]);
+	}, [filteredSales, periodFilter, apiMethodReport]);
 
 	// 인기 시술 TOP 5
 	const topServices = useMemo(() => {
@@ -160,7 +210,12 @@ export default function ReportsPage(): ReactElement {
 		<div className="flex h-full flex-col overflow-y-auto bg-neutral-50 p-6">
 			{/* Header */}
 			<div className="mb-6 flex items-center justify-between">
-				<h1 className="text-2xl font-bold text-neutral-800">리포트</h1>
+				<div className="flex items-center gap-3">
+					<h1 className="text-2xl font-bold text-neutral-800">리포트</h1>
+					{isApiLoading && (
+						<span className="material-symbols-outlined animate-spin text-neutral-400">sync</span>
+					)}
+				</div>
 				<div className="flex items-center gap-2">
 					{periodButtons.map((btn) => (
 						<button

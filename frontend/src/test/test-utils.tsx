@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type RenderOptions, render } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -6,21 +7,36 @@ import { CustomerProvider } from "../contexts/CustomerContext";
 import { SaleProvider } from "../contexts/SaleContext";
 import { StaffProvider } from "../contexts/StaffContext";
 
+// 테스트용 QueryClient (매 테스트마다 새로 생성)
+function createTestQueryClient(): QueryClient {
+	return new QueryClient({
+		defaultOptions: {
+			queries: {
+				retry: false,
+				gcTime: 0,
+			},
+		},
+	});
+}
+
 interface AllProvidersProps {
 	children: ReactNode;
 }
 
 function AllProviders({ children }: AllProvidersProps): ReactElement {
+	const queryClient = createTestQueryClient();
 	return (
-		<MemoryRouter>
-			<StaffProvider>
-				<CatalogProvider>
-					<CustomerProvider>
-						<SaleProvider>{children}</SaleProvider>
-					</CustomerProvider>
-				</CatalogProvider>
-			</StaffProvider>
-		</MemoryRouter>
+		<QueryClientProvider client={queryClient}>
+			<MemoryRouter>
+				<StaffProvider>
+					<CatalogProvider>
+						<CustomerProvider>
+							<SaleProvider>{children}</SaleProvider>
+						</CustomerProvider>
+					</CatalogProvider>
+				</StaffProvider>
+			</MemoryRouter>
+		</QueryClientProvider>
 	);
 }
 

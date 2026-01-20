@@ -45,19 +45,15 @@ const catalogMenu: CollapsibleNavItem = {
 	],
 };
 
-const accountItems: NavItem[] = [
-	{ icon: "settings", label: "설정", path: "/settings" },
-];
+const accountItems: NavItem[] = [{ icon: "settings", label: "설정", path: "/settings" }];
 
 function NavLinkItem({ item }: { item: NavItem }) {
 	return (
 		<NavLink
 			to={item.path}
 			className={({ isActive }) =>
-				`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-					isActive
-						? "bg-primary-500/10 text-primary-500"
-						: "text-neutral-500 hover:bg-neutral-50"
+				`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${
+					isActive ? "bg-primary-500/10 text-primary-500" : "text-neutral-500 hover:bg-neutral-50"
 				}`
 			}
 		>
@@ -65,11 +61,7 @@ function NavLinkItem({ item }: { item: NavItem }) {
 				<>
 					<span
 						className="material-symbols-outlined"
-						style={
-							isActive && item.filled
-								? { fontVariationSettings: "'FILL' 1" }
-								: undefined
-						}
+						style={isActive && item.filled ? { fontVariationSettings: "'FILL' 1" } : undefined}
 					>
 						{item.icon}
 					</span>
@@ -88,15 +80,17 @@ function CollapsibleMenu({ menu }: { menu: CollapsibleNavItem }) {
 	return (
 		<div>
 			<button
-				onClick={() => setIsOpen(!isOpen)}
-				className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+				onClick={() => {
+					setIsOpen(!isOpen);
+				}}
+				className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${
 					isInCatalog
 						? "bg-primary-500/10 text-primary-500"
 						: "text-neutral-500 hover:bg-neutral-50"
 				}`}
 			>
 				<span className="material-symbols-outlined">{menu.icon}</span>
-				<span className="text-sm font-bold flex-1 text-left">{menu.label}</span>
+				<span className="flex-1 text-left text-sm font-bold">{menu.label}</span>
 				<span
 					className={`material-symbols-outlined text-lg transition-transform ${
 						isOpen ? "rotate-180" : ""
@@ -106,22 +100,20 @@ function CollapsibleMenu({ menu }: { menu: CollapsibleNavItem }) {
 				</span>
 			</button>
 			{isOpen && (
-				<div className="ml-4 mt-1 space-y-1">
+				<div className="mt-1 ml-4 space-y-1">
 					{menu.subItems.map((subItem) => (
 						<NavLink
 							key={subItem.path}
 							to={subItem.path}
 							className={({ isActive }) =>
-								`flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+								`flex items-center gap-3 rounded-xl px-3 py-2 transition-all ${
 									isActive
 										? "bg-primary-500/10 text-primary-500"
 										: "text-neutral-500 hover:bg-neutral-50"
 								}`
 							}
 						>
-							<span className="material-symbols-outlined text-xl">
-								{subItem.icon}
-							</span>
+							<span className="material-symbols-outlined text-xl">{subItem.icon}</span>
 							<span className="text-sm font-medium">{subItem.label}</span>
 						</NavLink>
 					))}
@@ -133,21 +125,17 @@ function CollapsibleMenu({ menu }: { menu: CollapsibleNavItem }) {
 
 export default function Sidebar() {
 	return (
-		<aside className="w-[280px] bg-white border-r border-neutral-200 flex flex-col h-full overflow-y-auto no-scrollbar shrink-0">
+		<aside className="no-scrollbar flex h-full w-[280px] shrink-0 flex-col overflow-y-auto border-r border-neutral-200 bg-white">
 			{/* Logo */}
-			<div className="p-6 flex items-center gap-3">
-				<div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-					<span className="material-symbols-outlined text-white text-lg">
-						spa
-					</span>
+			<div className="flex items-center gap-3 p-6">
+				<div className="bg-primary-500 flex h-8 w-8 items-center justify-center rounded-lg">
+					<span className="material-symbols-outlined text-lg text-white">spa</span>
 				</div>
-				<span className="font-extrabold text-xl tracking-tight text-primary-500">
-					Mariem
-				</span>
+				<span className="text-primary-500 text-xl font-extrabold tracking-tight">Mariem</span>
 			</div>
 
 			{/* Navigation */}
-			<nav className="flex-1 px-4 space-y-1 pb-6">
+			<nav className="flex-1 space-y-1 px-4 pb-6">
 				{/* Main navigation */}
 				<div className="space-y-1">
 					{mainNavItems.map((item) => (
@@ -156,8 +144,8 @@ export default function Sidebar() {
 				</div>
 
 				{/* Management section */}
-				<div className="pt-4 mt-4 border-t border-neutral-200">
-					<p className="px-3 text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2">
+				<div className="mt-4 border-t border-neutral-200 pt-4">
+					<p className="mb-2 px-3 text-[10px] font-bold tracking-widest text-neutral-400 uppercase">
 						관리
 					</p>
 					<div className="space-y-1">
@@ -168,22 +156,22 @@ export default function Sidebar() {
 				</div>
 
 				{/* Catalog section */}
-				<div className="pt-4 mt-4 border-t border-neutral-200">
-					<p className="px-3 text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2">
+				<div className="mt-4 border-t border-neutral-200 pt-4">
+					<p className="mb-2 px-3 text-[10px] font-bold tracking-widest text-neutral-400 uppercase">
 						판매 항목
 					</p>
 					<CollapsibleMenu menu={catalogMenu} />
 				</div>
 
 				{/* Account section */}
-				<div className="pt-4 mt-4 border-t border-neutral-200">
-					<p className="px-3 text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2">
+				<div className="mt-4 border-t border-neutral-200 pt-4">
+					<p className="mb-2 px-3 text-[10px] font-bold tracking-widest text-neutral-400 uppercase">
 						계정
 					</p>
 					{accountItems.map((item) => (
 						<NavLinkItem key={item.path} item={item} />
 					))}
-					<button className="w-full flex items-center gap-3 px-3 py-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-all">
+					<button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-red-500 transition-all hover:bg-red-50">
 						<span className="material-symbols-outlined">logout</span>
 						<span className="text-sm font-bold">로그아웃</span>
 					</button>
@@ -191,18 +179,14 @@ export default function Sidebar() {
 			</nav>
 
 			{/* User info */}
-			<div className="p-4 border-t border-neutral-200">
+			<div className="border-t border-neutral-200 p-4">
 				<div className="flex items-center gap-3">
-					<div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center text-accent-600 font-bold">
+					<div className="bg-accent-500/20 text-accent-600 flex h-10 w-10 items-center justify-center rounded-full font-bold">
 						JH
 					</div>
-					<div className="flex-1 min-w-0">
-						<p className="text-sm font-bold text-neutral-800 truncate">
-							김정희
-						</p>
-						<p className="text-xs text-neutral-500 truncate">
-							헤어라운지 강남점
-						</p>
+					<div className="min-w-0 flex-1">
+						<p className="truncate text-sm font-bold text-neutral-800">김정희</p>
+						<p className="truncate text-xs text-neutral-500">헤어라운지 강남점</p>
 					</div>
 				</div>
 			</div>

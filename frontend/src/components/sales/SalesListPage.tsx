@@ -1,5 +1,6 @@
 import { type ReactElement, useMemo, useState } from "react";
 import { useSales } from "../../contexts/SaleContext";
+import { getMonthStartDate, getTodayDate } from "../../utils/date";
 import { formatCurrency } from "../../utils/format";
 
 // 정렬 관련 타입
@@ -51,17 +52,6 @@ const getServiceColor = (name: string, type: string): { bg: string; text: string
 	if (type === "topup") return { bg: "bg-amber-100", text: "text-amber-700" };
 	return serviceColorConfig[name] ?? defaultColor;
 };
-
-// 이번 달 시작일 계산
-function getMonthStartDate(): string {
-	const today = new Date();
-	return new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split("T")[0];
-}
-
-// 오늘 날짜
-function getTodayDate(): string {
-	return new Date().toISOString().split("T")[0];
-}
 
 export default function SalesListPage(): ReactElement {
 	const { sales, voidSale, getSalesByDateRange } = useSales();

@@ -24,6 +24,13 @@ gem "jbuilder"
 
 # Authentication
 gem "devise", "~> 4.9"
+gem "devise-jwt", "~> 0.12"
+
+# Authorization
+gem "pundit", "~> 2.4"
+
+# CORS
+gem "rack-cors", "~> 2.0"
 
 # Pagination
 gem "pagy", "~> 9.0"
@@ -60,6 +67,12 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Testing
+  gem "rspec-rails", "~> 7.0"
+  gem "factory_bot_rails", "~> 6.4"
+  gem "faker", "~> 3.4"
+  gem "shoulda-matchers", "~> 6.4"
 end
 
 group :development do

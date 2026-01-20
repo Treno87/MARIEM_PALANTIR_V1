@@ -17,6 +17,9 @@ class Visit < ApplicationRecord
 
   scope :draft, -> { where(status: "draft") }
   scope :finalized, -> { where(status: "finalized") }
+  scope :active, -> { where(voided_at: nil) }
+  scope :voided, -> { where.not(voided_at: nil) }
+  scope :for_report, -> { finalized.active }
 
   before_save :calculate_totals
 
@@ -30,6 +33,14 @@ class Visit < ApplicationRecord
 
   def finalize!
     update!(status: "finalized")
+  end
+
+  def voided?
+    voided_at.present?
+  end
+
+  def void!
+    update!(voided_at: Time.current)
   end
 
   def paid_amount

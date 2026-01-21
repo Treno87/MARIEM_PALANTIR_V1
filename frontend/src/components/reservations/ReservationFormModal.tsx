@@ -1,13 +1,14 @@
 import { type ReactElement, useMemo, useState } from "react";
 import { useCatalog } from "../../contexts/CatalogContext";
+import { useCustomers } from "../../contexts/CustomerContext";
 import { useStaff } from "../../contexts/StaffContext";
+import { CustomerSelect } from "../sale/CustomerSelect";
 import { DURATION_OPTIONS, findConflictingReservation, TIME_SLOTS } from "./constants";
 import type { Reservation, ReservationFormData } from "./types";
 
 interface ReservationFormModalProps {
 	isOpen: boolean;
 	staffId: string;
-	staffName: string;
 	date: string;
 	startTime: string;
 	editingReservation?: Reservation | null;
@@ -16,24 +17,19 @@ interface ReservationFormModalProps {
 	onSubmit: (data: ReservationFormData) => void;
 }
 
-// 시술명으로 카테고리 ID 찾기
 function findCategoryIdByServiceName(
 	serviceCategories: { id: string; items: { name: string }[] }[],
 	serviceName: string,
 ): string {
-	for (const category of serviceCategories) {
-		const found = category.items.find((item) => item.name === serviceName);
-		if (found) {
-			return category.id;
-		}
-	}
-	return "";
+	const category = serviceCategories.find((cat) =>
+		cat.items.some((item) => item.name === serviceName),
+	);
+	return category?.id ?? "";
 }
 
 export default function ReservationFormModal({
 	isOpen,
 	staffId,
-	staffName,
 	date,
 	startTime,
 	editingReservation,
@@ -43,15 +39,15 @@ export default function ReservationFormModal({
 }: ReservationFormModalProps): ReactElement | null {
 	const { serviceCategories } = useCatalog();
 	const { salesStaff } = useStaff();
+	const { customers, addCustomer } = useCustomers();
 
-	// 수정 모드에서 기존 시술명으로 카테고리 ID 찾기
 	const initialCategoryId = editingReservation
 		? findCategoryIdByServiceName(serviceCategories, editingReservation.serviceName)
 		: "";
 
-	// 초기값은 editingReservation에서 가져옴 (key prop으로 리마운트되므로 안전)
-	const [customerName, setCustomerName] = useState(editingReservation?.customerName ?? "");
-	const [isNewCustomer, setIsNewCustomer] = useState(editingReservation?.isNewCustomer ?? false);
+	const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
+		editingReservation?.customerId ?? null,
+	);
 	const [formStaffId, setFormStaffId] = useState(editingReservation?.staffId ?? staffId);
 	const [formDate, setFormDate] = useState(editingReservation?.date ?? date);
 	const [formStartTime, setFormStartTime] = useState(editingReservation?.startTime ?? startTime);
@@ -60,7 +56,8 @@ export default function ReservationFormModal({
 	const [duration, setDuration] = useState(editingReservation?.duration ?? 60);
 	const [memo, setMemo] = useState(editingReservation?.memo ?? "");
 
-	// 충돌하는 예약 검사
+	const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
+
 	const conflictingReservation = useMemo(() => {
 		if (!formStaffId || !formDate || !formStartTime) return null;
 		return findConflictingReservation(
@@ -73,21 +70,16 @@ export default function ReservationFormModal({
 		);
 	}, [reservations, formStaffId, formDate, formStartTime, duration, editingReservation?.id]);
 
-	// 선택된 담당자 이름 찾기
 	const selectedStaff = salesStaff.find((s) => s.id === formStaffId);
-	const formStaffName = selectedStaff?.name ?? staffName;
-
-	const isEditMode = editingReservation !== null;
-
-	// 선택된 카테고리의 시술 목록
+	const formStaffName = selectedStaff?.name ?? "";
+	const isEditMode = Boolean(editingReservation);
 	const selectedCategory = serviceCategories.find((c) => c.id === selectedCategoryId);
 	const serviceItems = selectedCategory?.items ?? [];
 
 	if (!isOpen) return null;
 
 	const resetForm = (): void => {
-		setCustomerName("");
-		setIsNewCustomer(false);
+		setSelectedCustomerId(null);
 		setSelectedCategoryId("");
 		setServiceName("");
 		setDuration(60);
@@ -95,17 +87,14 @@ export default function ReservationFormModal({
 	};
 
 	const handleSubmit = (): void => {
-		if (!customerName.trim() || !serviceName.trim()) return;
-		// staffId가 없으면 기본값 사용
-		const finalStaffId = formStaffId || staffId;
-		const finalStaffName = formStaffName || staffName;
+		if (selectedCustomer === undefined || !serviceName.trim()) return;
 
 		const formData: ReservationFormData = {
-			customerId: `cust-${String(Date.now())}`,
-			customerName: customerName.trim(),
-			isNewCustomer,
-			staffId: finalStaffId,
-			staffName: finalStaffName,
+			customerId: selectedCustomer.id,
+			customerName: selectedCustomer.name,
+			isNewCustomer: false,
+			staffId: formStaffId,
+			staffName: formStaffName,
 			serviceName: serviceName.trim(),
 			date: formDate,
 			startTime: formStartTime,
@@ -119,7 +108,7 @@ export default function ReservationFormModal({
 	};
 
 	const isValid =
-		customerName.trim() !== "" && serviceName.trim() !== "" && conflictingReservation === null;
+		selectedCustomer !== undefined && serviceName.trim() !== "" && conflictingReservation === null;
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -142,30 +131,16 @@ export default function ReservationFormModal({
 					{/* 고객 + 담당자 */}
 					<div className="grid grid-cols-2 gap-4">
 						<div>
-							<label htmlFor="customer" className="mb-1 block text-sm font-medium text-neutral-700">
-								고객 *
-							</label>
-							<input
-								id="customer"
-								type="text"
-								value={customerName}
-								onChange={(e) => {
-									setCustomerName(e.target.value);
+							<label className="mb-1 block text-sm font-medium text-neutral-700">고객 *</label>
+							<CustomerSelect
+								customers={customers}
+								selectedCustomer={selectedCustomer}
+								onSelect={setSelectedCustomerId}
+								onClear={() => {
+									setSelectedCustomerId(null);
 								}}
-								placeholder="고객명"
-								className="focus:border-primary-500 focus:ring-primary-500 w-full rounded-lg border border-neutral-200 px-3 py-2 focus:ring-2 focus:outline-none"
+								onAddCustomer={addCustomer}
 							/>
-							<label className="mt-1.5 flex items-center gap-1.5">
-								<input
-									type="checkbox"
-									checked={isNewCustomer}
-									onChange={(e) => {
-										setIsNewCustomer(e.target.checked);
-									}}
-									className="text-primary-500 focus:ring-primary-500 h-3.5 w-3.5 rounded border-neutral-300"
-								/>
-								<span className="text-xs text-neutral-600">신규 고객</span>
-							</label>
 						</div>
 						<div>
 							<label htmlFor="staff" className="mb-1 block text-sm font-medium text-neutral-700">

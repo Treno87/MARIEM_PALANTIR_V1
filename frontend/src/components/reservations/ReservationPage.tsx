@@ -38,7 +38,6 @@ export default function ReservationPage(): ReactElement {
 	const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
 	const [formContext, setFormContext] = useState({
 		staffId: "",
-		staffName: "",
 		startTime: "",
 	});
 
@@ -74,10 +73,21 @@ export default function ReservationPage(): ReactElement {
 		setSelectedDate(new Date());
 	};
 
-	// 빈 슬롯 클릭 -> 예약 등록 모달
-	const handleSlotClick = (staffId: string, staffName: string, time: string): void => {
+	// 예약추가 버튼 클릭 -> 기본값으로 예약 등록 모달
+	const handleAddReservation = (): void => {
+		const firstStaff = salesStaff[0];
 		setEditingReservation(null);
-		setFormContext({ staffId, staffName, startTime: time });
+		setFormContext({
+			staffId: firstStaff?.id ?? "",
+			startTime: "10:00",
+		});
+		setIsFormModalOpen(true);
+	};
+
+	// 빈 슬롯 클릭 -> 예약 등록 모달
+	const handleSlotClick = (staffId: string, _staffName: string, time: string): void => {
+		setEditingReservation(null);
+		setFormContext({ staffId, startTime: time });
 		setIsFormModalOpen(true);
 	};
 
@@ -92,7 +102,6 @@ export default function ReservationPage(): ReactElement {
 		setEditingReservation(reservation);
 		setFormContext({
 			staffId: reservation.staffId,
-			staffName: reservation.staffName,
 			startTime: reservation.startTime,
 		});
 		setIsFormModalOpen(true);
@@ -144,6 +153,12 @@ export default function ReservationPage(): ReactElement {
 				<h1 className="text-2xl font-bold text-neutral-800">예약관리</h1>
 				<div className="flex items-center gap-4">
 					<button
+						onClick={handleToday}
+						className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
+					>
+						오늘
+					</button>
+					<button
 						onClick={handlePrevDay}
 						aria-label="이전 날짜"
 						className="rounded-lg p-2 text-neutral-600 transition-colors hover:bg-neutral-100"
@@ -161,10 +176,11 @@ export default function ReservationPage(): ReactElement {
 						<span className="material-symbols-outlined">chevron_right</span>
 					</button>
 					<button
-						onClick={handleToday}
-						className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
+						onClick={handleAddReservation}
+						className="bg-primary-500 hover:bg-primary-600 flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
 					>
-						오늘
+						<span className="material-symbols-outlined text-lg">add</span>
+						예약추가
 					</button>
 				</div>
 			</div>
@@ -211,7 +227,6 @@ export default function ReservationPage(): ReactElement {
 				key={editingReservation?.id ?? "new"}
 				isOpen={isFormModalOpen}
 				staffId={formContext.staffId}
-				staffName={formContext.staffName}
 				date={editingReservation?.date ?? dateString}
 				startTime={formContext.startTime}
 				editingReservation={editingReservation}

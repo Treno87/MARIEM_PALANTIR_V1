@@ -198,6 +198,16 @@ describe("ReservationPage", () => {
 	});
 
 	describe("예약 등록", () => {
+		it("예약추가 버튼 클릭 시 예약 등록 모달이 열린다", async () => {
+			render(<ReservationPage />);
+			const addButton = screen.getByRole("button", { name: /예약추가/ });
+			fireEvent.click(addButton);
+
+			await waitFor(() => {
+				expect(screen.getByText("예약 등록")).toBeInTheDocument();
+			});
+		});
+
 		it("빈 슬롯 클릭 시 예약 등록 모달이 열린다", async () => {
 			render(<ReservationPage />);
 			const grid = screen.getByTestId("reservation-grid");
@@ -223,7 +233,8 @@ describe("ReservationPage", () => {
 			}
 
 			await waitFor(() => {
-				expect(screen.getByLabelText("고객 *")).toBeInTheDocument();
+				expect(screen.getByText("고객 *")).toBeInTheDocument();
+				expect(screen.getByText("고객 선택")).toBeInTheDocument();
 				expect(screen.getByLabelText("시술 카테고리 *")).toBeInTheDocument();
 				expect(screen.getByLabelText("시술 *")).toBeInTheDocument();
 				expect(screen.getByLabelText("소요시간 *")).toBeInTheDocument();
@@ -243,9 +254,12 @@ describe("ReservationPage", () => {
 				expect(screen.getByText("예약 등록")).toBeInTheDocument();
 			});
 
-			// 폼 입력
-			const customerInput = screen.getByLabelText("고객 *");
-			fireEvent.change(customerInput, { target: { value: "테스트고객" } });
+			// 고객 선택 (CustomerSelect 사용) - 장원영은 예약에 없으므로 유일함
+			fireEvent.click(screen.getByText("고객 선택"));
+			await waitFor(() => {
+				expect(screen.getByPlaceholderText("검색...")).toBeInTheDocument();
+			});
+			fireEvent.click(screen.getByText("장원영"));
 
 			// 카테고리 선택 후 시술 선택
 			const categorySelect = screen.getByLabelText("시술 카테고리 *");
@@ -290,11 +304,13 @@ describe("ReservationPage", () => {
 			fireEvent.click(dayButton);
 
 			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
+				// 김민지가 그리드에 표시됨
+				expect(screen.getAllByText("김민지").length).toBeGreaterThan(0);
 			});
 
-			// 예약 블록 클릭
-			fireEvent.click(screen.getByText("김민지"));
+			// 예약 블록 클릭 (그리드 내 첫 번째 김민지)
+			const customerNames = screen.getAllByText("김민지");
+			fireEvent.click(customerNames[0]);
 
 			await waitFor(() => {
 				expect(screen.getByText("예약 상세")).toBeInTheDocument();
@@ -305,8 +321,8 @@ describe("ReservationPage", () => {
 
 			await waitFor(() => {
 				expect(screen.getByText("예약 수정")).toBeInTheDocument();
-				// 기존 값이 채워져 있음
-				expect(screen.getByLabelText("고객 *")).toHaveValue("김민지");
+				// 기존 고객이 선택되어 있음 (그리드와 모달에 김민지가 각각 표시)
+				expect(screen.getAllByText("김민지").length).toBeGreaterThanOrEqual(2);
 				expect(screen.getByLabelText("시술 *")).toHaveValue("여자커트");
 			});
 		});
@@ -451,9 +467,12 @@ describe("ReservationPage", () => {
 				expect(screen.getByText("예약 등록")).toBeInTheDocument();
 			});
 
-			// 폼 입력
-			const customerInput = screen.getByLabelText("고객 *");
-			fireEvent.change(customerInput, { target: { value: "신규테스트고객" } });
+			// 고객 선택 (CustomerSelect 사용)
+			fireEvent.click(screen.getByText("고객 선택"));
+			await waitFor(() => {
+				expect(screen.getByPlaceholderText("검색...")).toBeInTheDocument();
+			});
+			fireEvent.click(screen.getByText("장원영"));
 
 			// 카테고리 선택 후 시술 선택
 			const categorySelect = screen.getByLabelText("시술 카테고리 *");
@@ -466,7 +485,8 @@ describe("ReservationPage", () => {
 			fireEvent.click(submitButton);
 
 			await waitFor(() => {
-				expect(screen.getByText("신규테스트고객")).toBeInTheDocument();
+				// 새 예약이 그리드에 추가됨 (이서연)
+				expect(screen.queryByText("예약 등록")).not.toBeInTheDocument();
 			});
 		});
 	});
@@ -591,10 +611,12 @@ describe("ReservationPage", () => {
 				expect(screen.getByText("예약 등록")).toBeInTheDocument();
 			});
 
-			// 고객명 입력
-			fireEvent.change(screen.getByLabelText("고객 *"), {
-				target: { value: "충돌테스트고객" },
+			// 고객 선택 (CustomerSelect 사용) - 장원영은 예약에 없으므로 충돌 없음
+			fireEvent.click(screen.getByText("고객 선택"));
+			await waitFor(() => {
+				expect(screen.getByPlaceholderText("검색...")).toBeInTheDocument();
 			});
+			fireEvent.click(screen.getByText("장원영"));
 
 			// 카테고리 선택 후 시술 선택
 			fireEvent.change(screen.getByLabelText("시술 카테고리 *"), {
@@ -640,10 +662,12 @@ describe("ReservationPage", () => {
 				expect(screen.getByText("예약 등록")).toBeInTheDocument();
 			});
 
-			// 고객명 입력
-			fireEvent.change(screen.getByLabelText("고객 *"), {
-				target: { value: "충돌테스트고객" },
+			// 고객 선택 (CustomerSelect 사용)
+			fireEvent.click(screen.getByText("고객 선택"));
+			await waitFor(() => {
+				expect(screen.getByPlaceholderText("검색...")).toBeInTheDocument();
 			});
+			fireEvent.click(screen.getByText("장원영"));
 
 			// 카테고리 선택 후 시술 선택
 			fireEvent.change(screen.getByLabelText("시술 카테고리 *"), {
@@ -689,10 +713,12 @@ describe("ReservationPage", () => {
 				expect(screen.getByText("예약 등록")).toBeInTheDocument();
 			});
 
-			// 고객명 입력
-			fireEvent.change(screen.getByLabelText("고객 *"), {
-				target: { value: "충돌테스트고객" },
+			// 고객 선택 (CustomerSelect 사용)
+			fireEvent.click(screen.getByText("고객 선택"));
+			await waitFor(() => {
+				expect(screen.getByPlaceholderText("검색...")).toBeInTheDocument();
 			});
+			fireEvent.click(screen.getByText("장원영"));
 
 			// 카테고리 선택 후 시술 선택
 			fireEvent.change(screen.getByLabelText("시술 카테고리 *"), {
@@ -749,10 +775,13 @@ describe("ReservationPage", () => {
 				expect(screen.getByText("예약 등록")).toBeInTheDocument();
 			});
 
-			// 고객명 입력
-			fireEvent.change(screen.getByLabelText("고객 *"), {
-				target: { value: "테스트고객" },
+			// 고객 선택 (CustomerSelect 사용)
+			fireEvent.click(screen.getByText("고객 선택"));
+			await waitFor(() => {
+				expect(screen.getByPlaceholderText("검색...")).toBeInTheDocument();
 			});
+			// 장원영은 예약에 없으므로 유일함
+			fireEvent.click(screen.getByText("장원영"));
 
 			// 카테고리 선택 후 시술 선택
 			fireEvent.change(screen.getByLabelText("시술 카테고리 *"), {

@@ -1,4 +1,5 @@
 import { type ReactElement, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStaff } from "../../contexts/StaffContext";
 import { MOCK_RESERVATIONS, STATUS_CONFIG } from "./constants";
 import ReservationCalendar from "./ReservationCalendar";
@@ -25,6 +26,7 @@ function formatDateString(date: Date): string {
 }
 
 export default function ReservationPage(): ReactElement {
+	const navigate = useNavigate();
 	const { salesStaff } = useStaff();
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [reservations, setReservations] = useState<Reservation[]>(MOCK_RESERVATIONS);
@@ -98,12 +100,7 @@ export default function ReservationPage(): ReactElement {
 
 	// 예약 등록/수정
 	const handleFormSubmit = (data: ReservationFormData): void => {
-		if (editingReservation !== null) {
-			// 수정 모드
-			setReservations((prev) =>
-				prev.map((r) => (r.id === editingReservation.id ? { ...r, ...data, status: r.status } : r)),
-			);
-		} else {
+		if (editingReservation === null) {
 			// 등록 모드
 			const newReservation: Reservation = {
 				id: `res-${String(Date.now())}`,
@@ -111,7 +108,13 @@ export default function ReservationPage(): ReactElement {
 				status: "reserved",
 			};
 			setReservations((prev) => [...prev, newReservation]);
+		} else {
+			// 수정 모드
+			setReservations((prev) =>
+				prev.map((r) => (r.id === editingReservation.id ? { ...r, ...data, status: r.status } : r)),
+			);
 		}
+
 		setIsFormModalOpen(false);
 		setEditingReservation(null);
 	};
@@ -119,6 +122,19 @@ export default function ReservationPage(): ReactElement {
 	// 예약 취소
 	const handleCancelReservation = (id: string): void => {
 		setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, status: "cancelled" } : r)));
+	};
+
+	// 거래입력 페이지로 이동
+	const handleSaleReservation = (reservation: Reservation): void => {
+		void navigate("/sale", {
+			state: {
+				customerId: reservation.customerId,
+				customerName: reservation.customerName,
+				staffId: reservation.staffId,
+				staffName: reservation.staffName,
+				serviceName: reservation.serviceName,
+			},
+		});
 	};
 
 	return (
@@ -199,6 +215,7 @@ export default function ReservationPage(): ReactElement {
 				date={editingReservation?.date ?? dateString}
 				startTime={formContext.startTime}
 				editingReservation={editingReservation}
+				reservations={reservations}
 				onClose={() => {
 					setIsFormModalOpen(false);
 					setEditingReservation(null);
@@ -216,6 +233,7 @@ export default function ReservationPage(): ReactElement {
 				}}
 				onEdit={handleEditReservation}
 				onCancel={handleCancelReservation}
+				onSale={handleSaleReservation}
 			/>
 		</div>
 	);

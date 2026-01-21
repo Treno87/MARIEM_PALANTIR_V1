@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { useCallback, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useCatalog } from "../../contexts/CatalogContext";
 import type { Customer } from "../../contexts/CustomerContext";
 import { useCustomers } from "../../contexts/CustomerContext";
@@ -23,7 +24,18 @@ import type { CartItem, ItemPaymentMethod } from "./types";
 
 type ModalType = "staff" | CatalogModalType | null;
 
+interface ReservationState {
+	customerId?: string;
+	customerName?: string;
+	staffId?: string;
+	staffName?: string;
+	serviceName?: string;
+}
+
 export default function SalePage(): ReactElement {
+	const location = useLocation();
+	const reservationState = location.state as ReservationState | null;
+
 	const { salesStaff } = useStaff();
 	const {
 		serviceCategories,
@@ -34,9 +46,51 @@ export default function SalePage(): ReactElement {
 	} = useCatalog();
 	const { customers, addCustomer, updateCustomer } = useCustomers();
 	const { addSale } = useSales();
-	const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-	const [selectedDesignerId, setSelectedDesignerId] = useState<string>("1");
-	const [cart, setCart] = useState<CartItem[]>([]);
+
+	// 예약에서 넘어온 경우 초기값 설정 (lazy initialization)
+	const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(() => {
+		if (reservationState?.customerId !== undefined && reservationState.customerId !== "") {
+			// customerId로 고객 존재 여부 확인
+			const existingCustomer = customers.find((c) => c.id === reservationState.customerId);
+			return existingCustomer?.id ?? null;
+		}
+		return null;
+	});
+
+	const [selectedDesignerId, setSelectedDesignerId] = useState<string>(() => {
+		if (reservationState?.staffId !== undefined && reservationState.staffId !== "") {
+			const staffExists = salesStaff.some((s) => s.id === reservationState.staffId);
+			if (staffExists) {
+				return reservationState.staffId;
+			}
+		}
+		return "1";
+	});
+
+	const [cart, setCart] = useState<CartItem[]>(() => {
+		if (reservationState?.serviceName !== undefined && reservationState.serviceName !== "") {
+			for (const category of serviceCategories) {
+				const serviceItem = category.items.find(
+					(item) => item.name === reservationState.serviceName,
+				);
+				if (serviceItem !== undefined) {
+					return [
+						{
+							id: serviceItem.id,
+							name: serviceItem.name,
+							price: serviceItem.price,
+							quantity: 1,
+							type: "service" as const,
+							paymentMethod: "card" as const,
+							discountAmount: 0,
+							finalPrice: serviceItem.price,
+						},
+					];
+				}
+			}
+		}
+		return [];
+	});
 
 	// 모달 상태
 	const [activeModal, setActiveModal] = useState<ModalType>(null);

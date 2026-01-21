@@ -33,12 +33,12 @@ export const DURATION_OPTIONS = [
 	{ value: 120, label: "2시간" },
 ];
 
-// Mock 예약 데이터 (staffId는 실제 Staff ID와 일치)
+// Mock 예약 데이터 (customerId와 customerName은 CustomerContext와 일치)
 export const MOCK_RESERVATIONS: Reservation[] = [
 	{
 		id: "res-1",
-		customerId: "cust-1",
-		customerName: "김미영",
+		customerId: "1",
+		customerName: "김민지",
 		isNewCustomer: false,
 		staffId: "1",
 		staffName: "김정희",
@@ -50,9 +50,9 @@ export const MOCK_RESERVATIONS: Reservation[] = [
 	},
 	{
 		id: "res-2",
-		customerId: "cust-2",
-		customerName: "이수진",
-		isNewCustomer: true,
+		customerId: "2",
+		customerName: "이서연",
+		isNewCustomer: false,
 		staffId: "1",
 		staffName: "김정희",
 		serviceName: "디지털펌",
@@ -63,8 +63,8 @@ export const MOCK_RESERVATIONS: Reservation[] = [
 	},
 	{
 		id: "res-3",
-		customerId: "cust-3",
-		customerName: "박지현",
+		customerId: "3",
+		customerName: "박지우",
 		isNewCustomer: false,
 		staffId: "2",
 		staffName: "박수민",
@@ -76,12 +76,12 @@ export const MOCK_RESERVATIONS: Reservation[] = [
 	},
 	{
 		id: "res-4",
-		customerId: "cust-4",
-		customerName: "최영희",
+		customerId: "4",
+		customerName: "최수현",
 		isNewCustomer: false,
 		staffId: "2",
 		staffName: "박수민",
-		serviceName: "클리닉",
+		serviceName: "두피클리닉",
 		date: "2026-01-21",
 		startTime: "16:00",
 		duration: 60,
@@ -89,7 +89,7 @@ export const MOCK_RESERVATIONS: Reservation[] = [
 	},
 	{
 		id: "res-5",
-		customerId: "cust-5",
+		customerId: "6",
 		customerName: "한소희",
 		isNewCustomer: false,
 		staffId: "3",
@@ -102,12 +102,12 @@ export const MOCK_RESERVATIONS: Reservation[] = [
 	},
 	{
 		id: "res-6",
-		customerId: "cust-6",
+		customerId: "5",
 		customerName: "정다은",
-		isNewCustomer: true,
+		isNewCustomer: false,
 		staffId: "3",
 		staffName: "이하늘",
-		serviceName: "매직",
+		serviceName: "매직셋팅",
 		date: "2026-01-21",
 		startTime: "13:00",
 		duration: 120,
@@ -115,14 +115,65 @@ export const MOCK_RESERVATIONS: Reservation[] = [
 	},
 ];
 
+// 시간 문자열 파싱 (중복 제거용 공통 함수)
+function parseTime(time: string): { hours: number; minutes: number } | null {
+	const [hours, minutes] = time.split(":").map(Number);
+	if (hours === undefined || minutes === undefined) return null;
+	return { hours, minutes };
+}
+
 // 시간 슬롯 인덱스 계산 (10:00 = 0, 10:30 = 1, ...)
 export function getTimeSlotIndex(time: string): number {
-	const [hours, minutes] = time.split(":").map(Number);
-	if (hours === undefined || minutes === undefined) return 0;
-	return (hours - 10) * 2 + (minutes === 30 ? 1 : 0);
+	const parsed = parseTime(time);
+	if (!parsed) return 0;
+	return (parsed.hours - 10) * 2 + (parsed.minutes === 30 ? 1 : 0);
 }
 
 // duration 기반 슬롯 수 계산 (30분 = 1슬롯)
 export function getDurationSlots(duration: number): number {
 	return duration / 30;
+}
+
+// 시간 문자열을 분 단위로 변환 (10:30 -> 630)
+export function timeToMinutes(time: string): number {
+	const parsed = parseTime(time);
+	if (!parsed) return 0;
+	return parsed.hours * 60 + parsed.minutes;
+}
+
+// 두 예약의 시간이 충돌하는지 확인
+export function isTimeConflict(
+	start1: string,
+	duration1: number,
+	start2: string,
+	duration2: number,
+): boolean {
+	const startMin1 = timeToMinutes(start1);
+	const endMin1 = startMin1 + duration1;
+	const startMin2 = timeToMinutes(start2);
+	const endMin2 = startMin2 + duration2;
+
+	// 겹침 조건: start1 < end2 AND start2 < end1
+	return startMin1 < endMin2 && startMin2 < endMin1;
+}
+
+// 충돌하는 예약 찾기
+export function findConflictingReservation(
+	reservations: Reservation[],
+	staffId: string,
+	date: string,
+	startTime: string,
+	duration: number,
+	excludeId?: string,
+): Reservation | null {
+	return (
+		reservations.find(
+			(r) =>
+				r.id !== excludeId &&
+				r.staffId === staffId &&
+				r.date === date &&
+				r.status !== "cancelled" &&
+				isTimeConflict(r.startTime, r.duration, startTime, duration),
+		) ?? null
+	);
 }

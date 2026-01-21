@@ -8,6 +8,7 @@ interface ReservationDetailModalProps {
 	onClose: () => void;
 	onEdit: (reservation: Reservation) => void;
 	onCancel: (id: string) => void;
+	onSale: (reservation: Reservation) => void;
 }
 
 export default function ReservationDetailModal({
@@ -16,10 +17,16 @@ export default function ReservationDetailModal({
 	onClose,
 	onEdit,
 	onCancel,
+	onSale,
 }: ReservationDetailModalProps): ReactElement | null {
 	if (!isOpen || !reservation) return null;
 
 	const statusStyle = STATUS_CONFIG[reservation.status];
+
+	const handleSale = (): void => {
+		onSale(reservation);
+		onClose();
+	};
 
 	const handleEdit = (): void => {
 		onEdit(reservation);
@@ -89,7 +96,7 @@ export default function ReservationDetailModal({
 					</div>
 
 					{/* 메모 */}
-					{reservation.memo && (
+					{reservation.memo !== undefined && reservation.memo !== "" && (
 						<div>
 							<p className="mb-1 text-sm text-neutral-500">메모</p>
 							<p className="rounded-lg bg-neutral-50 p-3 text-sm text-neutral-700">
@@ -100,28 +107,45 @@ export default function ReservationDetailModal({
 				</div>
 
 				{/* Footer */}
-				<div className="flex justify-end gap-3 border-t border-neutral-200 bg-neutral-50 p-6">
+				<div
+					data-testid="detail-modal-footer"
+					className="flex justify-center gap-2 border-t border-neutral-200 bg-neutral-50 p-4"
+				>
 					{reservation.status === "reserved" && (
 						<>
 							<button
-								onClick={handleCancel}
-								className="rounded-xl px-5 py-2.5 font-bold text-red-600 transition-colors hover:bg-red-50"
+								onClick={handleSale}
+								aria-label="거래입력"
+								className="flex flex-col items-center gap-1 rounded-xl px-4 py-2 text-green-600 transition-colors hover:bg-green-50"
 							>
-								예약 취소
+								<span className="material-symbols-outlined text-2xl">point_of_sale</span>
+								<span className="text-xs font-medium">거래입력</span>
 							</button>
 							<button
 								onClick={handleEdit}
-								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-5 py-2.5 font-bold text-white transition-colors"
+								aria-label="수정"
+								className="flex flex-col items-center gap-1 rounded-xl px-4 py-2 text-blue-600 transition-colors hover:bg-blue-50"
 							>
-								수정
+								<span className="material-symbols-outlined text-2xl">edit</span>
+								<span className="text-xs font-medium">수정</span>
+							</button>
+							<button
+								onClick={handleCancel}
+								aria-label="취소"
+								className="flex flex-col items-center gap-1 rounded-xl px-4 py-2 text-red-600 transition-colors hover:bg-red-50"
+							>
+								<span className="material-symbols-outlined text-2xl">event_busy</span>
+								<span className="text-xs font-medium">취소</span>
 							</button>
 						</>
 					)}
 					<button
 						onClick={onClose}
-						className="rounded-xl px-5 py-2.5 font-bold text-neutral-600 transition-colors hover:bg-neutral-200"
+						aria-label="닫기"
+						className="flex flex-col items-center gap-1 rounded-xl px-4 py-2 text-neutral-600 transition-colors hover:bg-neutral-200"
 					>
-						닫기
+						<span className="material-symbols-outlined text-2xl">close</span>
+						<span className="text-xs font-medium">닫기</span>
 					</button>
 				</div>
 			</div>

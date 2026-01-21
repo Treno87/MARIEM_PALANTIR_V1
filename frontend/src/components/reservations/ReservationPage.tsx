@@ -107,23 +107,31 @@ export default function ReservationPage(): ReactElement {
 		setIsFormModalOpen(true);
 	};
 
-	// 예약 등록/수정
-	const handleFormSubmit = (data: ReservationFormData): void => {
-		if (editingReservation === null) {
-			// 등록 모드
-			const newReservation: Reservation = {
-				id: `res-${String(Date.now())}`,
-				...data,
-				status: "reserved",
-			};
-			setReservations((prev) => [...prev, newReservation]);
-		} else {
-			// 수정 모드
-			setReservations((prev) =>
-				prev.map((r) => (r.id === editingReservation.id ? { ...r, ...data, status: r.status } : r)),
-			);
-		}
+	// 예약 등록
+	const handleCreateReservation = (data: ReservationFormData): void => {
+		const newReservation: Reservation = {
+			id: `res-${String(Date.now())}`,
+			...data,
+			status: "reserved",
+		};
+		setReservations((prev) => [...prev, newReservation]);
+	};
 
+	// 예약 수정
+	const handleUpdateReservation = (data: ReservationFormData): void => {
+		if (!editingReservation) return;
+		setReservations((prev) =>
+			prev.map((r) => (r.id === editingReservation.id ? { ...r, ...data, status: r.status } : r)),
+		);
+	};
+
+	// 예약 폼 제출
+	const handleFormSubmit = (data: ReservationFormData): void => {
+		if (editingReservation) {
+			handleUpdateReservation(data);
+		} else {
+			handleCreateReservation(data);
+		}
 		setIsFormModalOpen(false);
 		setEditingReservation(null);
 	};
@@ -261,9 +269,9 @@ export default function ReservationPage(): ReactElement {
 				onReservationDrop={handleReservationDrop}
 			/>
 
-			{/* 예약 등록/수정 모달 */}
+			{/* 예약 등록/수정 모달 - 날짜 변경 시 재마운트하여 formDate 초기값 갱신 */}
 			<ReservationFormModal
-				key={editingReservation?.id ?? "new"}
+				key={`modal-${editingReservation?.id ?? "new"}-${dateString}`}
 				isOpen={isFormModalOpen}
 				staffId={formContext.staffId}
 				date={editingReservation?.date ?? dateString}

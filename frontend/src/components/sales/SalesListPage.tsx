@@ -18,6 +18,36 @@ const statusConfig = {
 	},
 } as const;
 
+const customerTypeConfig: Record<string, { label: string; bgColor: string; textColor: string }> = {
+	new: {
+		label: "신규",
+		bgColor: "bg-green-100",
+		textColor: "text-green-700",
+	},
+	returning: {
+		label: "재방",
+		bgColor: "bg-blue-100",
+		textColor: "text-blue-700",
+	},
+	substitute: {
+		label: "대체",
+		bgColor: "bg-purple-100",
+		textColor: "text-purple-700",
+	},
+};
+
+const getCustomerTypeStyle = (
+	type: string,
+): { label: string; bgColor: string; textColor: string } => {
+	return (
+		customerTypeConfig[type] ?? {
+			label: type,
+			bgColor: "bg-neutral-100",
+			textColor: "text-neutral-600",
+		}
+	);
+};
+
 // 시술별 색상 설정
 const serviceColorConfig: Record<string, { bg: string; text: string }> = {
 	// 커트 계열 - 파란색
@@ -196,6 +226,7 @@ export default function SalesListPage(): ReactElement {
 									</span>
 								</div>
 							</th>
+							<th className="px-4 py-3 text-center text-sm font-bold text-neutral-600">고객구분</th>
 							<th
 								onClick={() => {
 									handleSort("staff");
@@ -262,6 +293,18 @@ export default function SalesListPage(): ReactElement {
 										<span className="font-medium text-neutral-800">{sale.customer.name}</span>
 									</div>
 								</td>
+								<td className="px-4 py-3 text-center">
+									{(() => {
+										const typeStyle = getCustomerTypeStyle(sale.customer.type);
+										return (
+											<span
+												className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${typeStyle.bgColor} ${typeStyle.textColor}`}
+											>
+												{typeStyle.label}
+											</span>
+										);
+									})()}
+								</td>
 								<td className="px-4 py-3">
 									<div className="flex items-center gap-2">
 										<span
@@ -307,9 +350,11 @@ export default function SalesListPage(): ReactElement {
 												e.stopPropagation();
 												handleVoid(sale.id);
 											}}
-											className="rounded-lg px-3 py-1 text-sm text-red-600 transition-colors hover:bg-red-50"
+											className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+											title="거래 취소"
+											aria-label="거래 취소"
 										>
-											취소
+											<span className="material-symbols-outlined text-xl">delete</span>
 										</button>
 									)}
 								</td>

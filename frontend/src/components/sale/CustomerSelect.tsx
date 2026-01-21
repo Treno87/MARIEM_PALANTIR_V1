@@ -51,6 +51,16 @@ export function CustomerSelect({
 		(c) => c.name.includes(searchQuery) || c.phone.includes(searchQuery),
 	);
 
+	const selectFirstCustomerOnEnter = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+		if (e.key !== "Enter") return;
+
+		const firstCustomer = filteredCustomers[0];
+		if (firstCustomer === undefined) return;
+
+		onSelect(firstCustomer.id);
+		closeDropdown();
+	};
+
 	const handleFormSubmit = (formData: CustomerFormData): void => {
 		const newCustomerId = onAddCustomer({
 			name: formData.name,
@@ -103,6 +113,7 @@ export function CustomerSelect({
 							onChange={(e) => {
 								setSearchQuery(e.target.value);
 							}}
+							onKeyDown={selectFirstCustomerOnEnter}
 							className="w-full rounded-md bg-neutral-50 px-3 py-2 text-sm focus:outline-none"
 							autoFocus
 						/>

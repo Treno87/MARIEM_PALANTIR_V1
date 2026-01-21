@@ -2,6 +2,24 @@
 
 > API 개발 시 이 문서를 참조하세요: `@docs/specs/api.md`
 
+## Implementation Notes (구현 현황)
+
+> **최종 업데이트**: 2026-01-21
+>
+> 실제 구현에서 일부 엔드포인트 네이밍이 변경되었습니다.
+
+### 엔드포인트 변경 사항
+
+| 설계 문서 | 실제 구현 | 비고 |
+|-----------|-----------|------|
+| `/api/sales` | `/api/visits` | 거래 API |
+| `/api/catalog_items` | `/api/services`, `/api/products` | 2개로 분리 |
+| `/api/catalog_categories` | `/api/service_categories` | 서비스 카테고리만 |
+| `/api/users` | `/api/staff_members` | 담당자 API |
+| `status: completed/voided` | `status: draft/finalized` + `voided_at` | 상태 관리 방식 |
+
+---
+
 ## Overview
 
 - **Base URL**: `/api`

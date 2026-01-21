@@ -3,6 +3,39 @@
 > 이 파일은 프로젝트의 **진실의 원천(Source of Truth)**입니다.
 > 작업 시작 시 "Read @SPEC.md and start phase X"와 같이 참조하세요.
 
+---
+
+## Implementation Notes (구현 현황)
+
+> **최종 업데이트**: 2026-01-21
+>
+> 실제 구현 과정에서 일부 네이밍과 구조가 변경되었습니다.
+> 상세 진행 상황은 `docs/TASKS.md` 참조.
+
+### 용어 변경 사항
+
+| 설계 문서 | 실제 구현 | 비고 |
+|-----------|-----------|------|
+| `Tenant` | `Store` | 기능 동일, 네이밍만 변경 |
+| `Sale` | `Visit` | 거래 모델 |
+| `SaleItem` | `SaleLineItem` | 거래 라인아이템 |
+| `CatalogItem` | `Service`, `Product` | 2개 모델로 분리 |
+| `status: completed/voided` | `status: draft/finalized` + `voided_at` | 소프트 삭제 방식 |
+
+### 범위 변경 사항
+
+| 기능 | 원래 범위 | 현재 상태 |
+|------|----------|----------|
+| 예약 관리 | Out of Scope | ✅ 구현됨 (ReservationPage) |
+| 정액권 시스템 | 소진만 | 🟡 부분 구현 (PrepaidPlan, PrepaidUsage) |
+| 감사 로그 | In Scope | ❌ 미구현 |
+
+### 프로젝트 진행률
+
+- **총 진행률**: 97% (93/96 태스크)
+- **Phase 1-4**: 완료 ✅
+- **Phase 5**: 테스트/배포 진행 중 🟡
+
 ## High-level Vision
 
 ### 제품명

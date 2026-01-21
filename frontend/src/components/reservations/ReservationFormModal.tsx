@@ -322,7 +322,7 @@ export default function ReservationFormModal({
 					<button
 						onClick={handleSubmit}
 						disabled={!isValid}
-						className="bg-primary-500 hover:bg-primary-600 rounded-xl px-5 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+						className="bg-primary-500 hover:bg-primary-600 rounded-xl px-5 py-2.5 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 					>
 						{isEditMode ? "저장" : "등록"}
 					</button>

@@ -129,7 +129,7 @@ export default function MembershipPage() {
 				</div>
 				<button
 					onClick={openAddModal}
-					className="bg-primary-500 hover:bg-primary-600 flex items-center gap-2 rounded-xl px-4 py-2.5 font-bold text-white transition-colors"
+					className="bg-primary-500 hover:bg-primary-600 flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
 				>
 					<span className="material-symbols-outlined">add</span>
 					{activeTab === "stored_value" ? "정액권 추가" : "정기권 추가"}
@@ -411,7 +411,7 @@ export default function MembershipPage() {
 											!storedValueForm.value
 										: !membershipForm.name.trim() || !membershipForm.price || !membershipForm.count
 								}
-								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 							>
 								{editingItem ? "수정" : "추가"}
 							</button>

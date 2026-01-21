@@ -807,4 +807,281 @@ describe("ReservationPage", () => {
 			});
 		});
 	});
+
+	describe("드래그 앤 드롭으로 예약 이동", () => {
+		it("예약 블록은 draggable 속성을 가진다", async () => {
+			render(<ReservationPage />);
+			// Mock 데이터 날짜로 이동
+			const dayButton = screen.getByRole("button", { name: "21" });
+			fireEvent.click(dayButton);
+
+			await waitFor(() => {
+				expect(screen.getByText("김민지")).toBeInTheDocument();
+			});
+
+			// 예약 블록에 draggable 속성 확인
+			const reservationBlock = screen.getByText("김민지").closest("[draggable]");
+			expect(reservationBlock).toHaveAttribute("draggable", "true");
+		});
+
+		it("빈 슬롯은 drop 대상으로 동작한다", async () => {
+			render(<ReservationPage />);
+			// Mock 데이터 날짜로 이동
+			const dayButton = screen.getByRole("button", { name: "21" });
+			fireEvent.click(dayButton);
+
+			await waitFor(() => {
+				expect(screen.getByText("김민지")).toBeInTheDocument();
+			});
+
+			const grid = screen.getByTestId("reservation-grid");
+			const dropZones = grid.querySelectorAll("[data-drop-zone]");
+			expect(dropZones.length).toBeGreaterThan(0);
+		});
+
+		it("예약 블록을 다른 시간대로 드래그하면 시간이 변경된다", async () => {
+			render(<ReservationPage />);
+			// Mock 데이터 날짜로 이동
+			const dayButton = screen.getByRole("button", { name: "21" });
+			fireEvent.click(dayButton);
+
+			await waitFor(() => {
+				expect(screen.getByText("김민지")).toBeInTheDocument();
+			});
+
+			// 김민지 예약 블록 찾기 (10:00 -> 12:00으로 이동 예정)
+			const reservationBlock = screen.getByText("김민지").closest("[draggable]");
+			expect(reservationBlock).not.toBeNull();
+			if (reservationBlock === null) return;
+
+			// 12:00 시간대의 드롭존 찾기 (김정희 담당자)
+			const grid = screen.getByTestId("reservation-grid");
+			const dropZone = grid.querySelector('[data-drop-zone][data-staff-id="1"][data-time="12:00"]');
+			expect(dropZone).not.toBeNull();
+			if (dropZone === null) return;
+
+			// 드래그 시작
+			fireEvent.dragStart(reservationBlock, {
+				dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
+			});
+
+			// 드롭
+			fireEvent.drop(dropZone, {
+				dataTransfer: { getData: () => "res-1" },
+			});
+
+			// 예약 시간이 12:00으로 변경되었는지 확인 (블록 위치 변경)
+			await waitFor(() => {
+				// 예약 블록 클릭하여 상세 모달로 확인
+				fireEvent.click(screen.getByText("김민지"));
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText("예약 상세")).toBeInTheDocument();
+				expect(screen.getByText("12:00")).toBeInTheDocument();
+			});
+		});
+
+		it("예약 블록을 다른 담당자에게 드래그하면 담당자가 변경된다", async () => {
+			render(<ReservationPage />);
+			// Mock 데이터 날짜로 이동
+			const dayButton = screen.getByRole("button", { name: "21" });
+			fireEvent.click(dayButton);
+
+			await waitFor(() => {
+				expect(screen.getByText("김민지")).toBeInTheDocument();
+			});
+
+			// 김민지 예약 블록 (김정희 담당, 10:00)
+			const reservationBlock = screen.getByText("김민지").closest("[draggable]");
+			if (reservationBlock === null) return;
+
+			// 박수민 담당자(id=2)의 18:00 드롭존
+			const grid = screen.getByTestId("reservation-grid");
+			const dropZone = grid.querySelector('[data-drop-zone][data-staff-id="2"][data-time="18:00"]');
+			expect(dropZone).not.toBeNull();
+			if (dropZone === null) return;
+
+			// 드래그 & 드롭
+			fireEvent.dragStart(reservationBlock, {
+				dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
+			});
+			fireEvent.drop(dropZone, {
+				dataTransfer: { getData: () => "res-1" },
+			});
+
+			// 예약 상세에서 담당자 변경 확인
+			await waitFor(() => {
+				fireEvent.click(screen.getByText("김민지"));
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText("예약 상세")).toBeInTheDocument();
+				// 모달에서 담당자 확인 (그리드와 모달에 모두 표시됨)
+				const staffLabels = screen.getAllByText("박수민");
+				expect(staffLabels.length).toBeGreaterThanOrEqual(2); // 그리드 + 모달
+			});
+		});
+
+		it("충돌하는 위치로 드롭하면 이동하지 않는다", async () => {
+			render(<ReservationPage />);
+			// Mock 데이터 날짜로 이동
+			const dayButton = screen.getByRole("button", { name: "21" });
+			fireEvent.click(dayButton);
+
+			await waitFor(() => {
+				expect(screen.getByText("김민지")).toBeInTheDocument();
+			});
+
+			// 박지우 예약 블록 (박수민 담당, 11:00-12:30, 90분)
+			const reservationBlock = screen.getByText("박지우").closest("[draggable]");
+			if (reservationBlock === null) return;
+
+			// 김정희 담당자의 10:00 드롭존 (김민지 예약 10:00-11:00과 충돌)
+			const grid = screen.getByTestId("reservation-grid");
+			const dropZone = grid.querySelector('[data-drop-zone][data-staff-id="1"][data-time="10:00"]');
+			if (dropZone === null) return;
+
+			// 드래그 & 드롭
+			fireEvent.dragStart(reservationBlock, {
+				dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
+			});
+			fireEvent.drop(dropZone, {
+				dataTransfer: { getData: () => "res-3" },
+			});
+
+			// 박지우 예약은 여전히 박수민 담당자
+			await waitFor(() => {
+				fireEvent.click(screen.getByText("박지우"));
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText("예약 상세")).toBeInTheDocument();
+				// 담당자가 변경되지 않음 (그리드 + 모달에 모두 박수민 표시)
+				const staffLabels = screen.getAllByText("박수민");
+				expect(staffLabels.length).toBeGreaterThanOrEqual(2);
+				// 시간도 변경되지 않음 (그리드 시간 헤더 + 모달에 모두 11:00 표시)
+				const timeLabels = screen.getAllByText(/11:00/);
+				expect(timeLabels.length).toBeGreaterThanOrEqual(2);
+			});
+		});
+
+		it("드래그 중 드롭존에 호버하면 시각적 피드백이 표시된다", async () => {
+			render(<ReservationPage />);
+			const dayButton = screen.getByRole("button", { name: "21" });
+			fireEvent.click(dayButton);
+
+			await waitFor(() => {
+				expect(screen.getByText("김민지")).toBeInTheDocument();
+			});
+
+			const grid = screen.getByTestId("reservation-grid");
+			const dropZone = grid.querySelector('[data-drop-zone][data-staff-id="1"][data-time="12:00"]');
+			if (dropZone === null) return;
+
+			// 드래그 오버 시 시각적 피드백
+			fireEvent.dragOver(dropZone, {
+				dataTransfer: { dropEffect: "move" },
+			});
+
+			expect(dropZone).toHaveClass("bg-primary-100");
+		});
+
+		it("취소된 예약은 드래그할 수 없다", async () => {
+			render(<ReservationPage />);
+			const dayButton = screen.getByRole("button", { name: "21" });
+			fireEvent.click(dayButton);
+
+			await waitFor(() => {
+				// 한소희 예약은 취소 상태
+				expect(screen.getByText("한소희")).toBeInTheDocument();
+			});
+
+			// 취소된 예약 블록은 draggable="false"
+			const cancelledBlock = screen.getByText("한소희").closest("[draggable]");
+			expect(cancelledBlock).toHaveAttribute("draggable", "false");
+		});
+
+		it("드래그 시작 시 예약 블록에 pointer-events: none이 적용된다", async () => {
+			render(<ReservationPage />);
+			// Mock 데이터 날짜로 이동
+			const dayButton = screen.getByRole("button", { name: "21" });
+			fireEvent.click(dayButton);
+
+			await waitFor(() => {
+				expect(screen.getByText("김민지")).toBeInTheDocument();
+			});
+
+			// 김민지 예약 블록
+			const reservationBlock = screen.getByText("김민지").closest("[draggable]");
+			expect(reservationBlock).not.toBeNull();
+			if (reservationBlock === null) return;
+
+			// 드래그 시작 전에는 pointer-events가 auto
+			expect(reservationBlock).toHaveStyle({ pointerEvents: "auto" });
+
+			// 드래그 시작
+			fireEvent.dragStart(reservationBlock, {
+				dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
+			});
+
+			// 드래그 중에는 pointer-events가 none으로 변경됨
+			await waitFor(() => {
+				expect(reservationBlock).toHaveStyle({ pointerEvents: "none" });
+			});
+
+			// 드래그 종료
+			fireEvent.dragEnd(reservationBlock);
+
+			// 드래그 종료 후 pointer-events가 다시 auto
+			await waitFor(() => {
+				expect(reservationBlock).toHaveStyle({ pointerEvents: "auto" });
+			});
+		});
+
+		it("예약을 자신의 시간대 안으로 이동할 수 있다 (14:00→14:30)", async () => {
+			render(<ReservationPage />);
+			// Mock 데이터 날짜로 이동
+			const dayButton = screen.getByRole("button", { name: "21" });
+			fireEvent.click(dayButton);
+
+			await waitFor(() => {
+				// 이서연 예약 (김정희 담당, 14:00~16:00)
+				expect(screen.getByText("이서연")).toBeInTheDocument();
+			});
+
+			// 이서연 예약 블록 (김정희 담당, 14:00-16:00)
+			const reservationBlock = screen.getByText("이서연").closest("[draggable]");
+			expect(reservationBlock).not.toBeNull();
+			if (reservationBlock === null) return;
+
+			// 드래그 시작
+			fireEvent.dragStart(reservationBlock, {
+				dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
+			});
+
+			// 드래그 중 pointer-events: none이 적용되어 아래 슬롯이 이벤트를 받음
+			// 실제 브라우저에서는 14:30 슬롯에 드롭되지만, 테스트에서는 슬롯에 직접 드롭
+			const grid = screen.getByTestId("reservation-grid");
+			const dropZone = grid.querySelector('[data-drop-zone][data-staff-id="1"][data-time="14:30"]');
+			expect(dropZone).not.toBeNull();
+			if (dropZone === null) return;
+
+			// 슬롯에 드롭 (이서연 예약 블록 아래의 슬롯)
+			fireEvent.drop(dropZone, {
+				dataTransfer: { getData: () => "res-2" },
+			});
+
+			// 예약 상세에서 시간이 14:30으로 변경되었는지 확인
+			await waitFor(() => {
+				fireEvent.click(screen.getByText("이서연"));
+			});
+
+			await waitFor(() => {
+				expect(screen.getByText("예약 상세")).toBeInTheDocument();
+				// 시간이 14:30으로 변경됨
+				expect(screen.getByText("14:30")).toBeInTheDocument();
+			});
+		});
+	});
 });

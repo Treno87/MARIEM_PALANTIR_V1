@@ -32,12 +32,12 @@ export default function ReservationGrid({
 	onReservationDrop,
 }: ReservationGridProps): ReactElement {
 	const [dragOverSlot, setDragOverSlot] = useState<string | null>(null);
+	const [isAnyBlockDragging, setIsAnyBlockDragging] = useState(false);
 
 	const getReservationsForStaff = (staffId: string): Reservation[] => {
 		return reservations.filter((r) => r.staffId === staffId);
 	};
 
-	// 슬롯 수 (10:00 ~ 20:00, 30분 단위)
 	const slotCount = TIME_SLOTS.length;
 
 	const handleDragOver = (e: DragEvent<HTMLDivElement>, staffId: string, time: string): void => {
@@ -48,6 +48,14 @@ export default function ReservationGrid({
 
 	const handleDragLeave = (): void => {
 		setDragOverSlot(null);
+	};
+
+	const handleBlockDragStart = (): void => {
+		setIsAnyBlockDragging(true);
+	};
+
+	const handleBlockDragEnd = (): void => {
+		setIsAnyBlockDragging(false);
 	};
 
 	const handleDrop = (
@@ -139,6 +147,9 @@ export default function ReservationGrid({
 										reservation={reservation}
 										slotCount={slotCount}
 										onClick={onReservationClick}
+										isOtherBlockDragging={isAnyBlockDragging}
+										onDragStart={handleBlockDragStart}
+										onDragEnd={handleBlockDragEnd}
 									/>
 								))}
 							</div>

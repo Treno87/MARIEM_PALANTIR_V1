@@ -117,7 +117,7 @@ export default function CustomersPage(): ReactElement {
 				</div>
 				<button
 					onClick={openAddModal}
-					className="bg-primary-500 hover:bg-primary-600 flex items-center gap-2 rounded-xl px-4 py-2.5 font-bold text-white transition-colors"
+					className="bg-primary-500 hover:bg-primary-600 flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
 				>
 					<span className="material-symbols-outlined">person_add</span>
 					고객 추가

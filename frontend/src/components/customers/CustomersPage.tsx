@@ -1,27 +1,16 @@
-import { type ReactElement, useMemo, useState } from "react";
+import type { ReactElement } from "react";
+import { useState } from "react";
 import {
 	type Customer,
-	getAutoStatus,
 	getCustomerTier,
 	getDaysSinceLastVisit,
 	tierConfig,
 	useCustomers,
 } from "../../contexts/CustomerContext";
-import { useCreateCustomer, useUpdateCustomer } from "../../hooks/useCustomersApi";
+import { useCreateCustomer, useCustomerTable, useUpdateCustomer } from "../../hooks";
 import { USE_API } from "../../lib/config";
 import CustomerDetailModal from "./CustomerDetailModal";
 import CustomerFormModal, { type CustomerFormData } from "./CustomerFormModal";
-
-// 정렬 관련 타입
-type CustomerSortKey =
-	| "name"
-	| "phone"
-	| "visitCount"
-	| "tier"
-	| "totalSpent"
-	| "storedValue"
-	| "status";
-type SortDirection = "asc" | "desc";
 
 const statusConfig = {
 	active: {
@@ -43,73 +32,21 @@ export default function CustomersPage(): ReactElement {
 	const createCustomerMutation = useCreateCustomer();
 	const updateCustomerMutation = useUpdateCustomer();
 
+	// 테이블 상태 관리 훅
+	const {
+		searchQuery,
+		setSearchQuery,
+		showInactive,
+		setShowInactive,
+		sortedCustomers,
+		stats,
+		handleSort,
+		getSortIcon,
+	} = useCustomerTable(customers);
+
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
 	const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-
-	// 필터 및 검색
-	const [searchQuery, setSearchQuery] = useState("");
-	const [showInactive, setShowInactive] = useState(false);
-	const [sortKey, setSortKey] = useState<CustomerSortKey>("name");
-	const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-
-	const filteredCustomers = customers.filter((c) => {
-		// 상태 필터
-		if (!showInactive && c.status === "inactive") return false;
-		// 검색 필터
-		if (searchQuery.trim() !== "") {
-			const query = searchQuery.toLowerCase();
-			return c.name.toLowerCase().includes(query) || c.phone.includes(searchQuery);
-		}
-		return true;
-	});
-
-	// 정렬된 고객 목록
-	const sortedCustomers = useMemo(() => {
-		const tierOrder = { vip: 3, gold: 2, silver: 1, bronze: 0 };
-		return [...filteredCustomers].sort((a, b) => {
-			let comparison = 0;
-			switch (sortKey) {
-				case "name":
-					comparison = a.name.localeCompare(b.name, "ko");
-					break;
-				case "phone":
-					comparison = a.phone.localeCompare(b.phone);
-					break;
-				case "visitCount":
-					comparison = a.visitCount - b.visitCount;
-					break;
-				case "tier":
-					comparison =
-						tierOrder[getCustomerTier(a.totalSpent)] - tierOrder[getCustomerTier(b.totalSpent)];
-					break;
-				case "totalSpent":
-					comparison = a.totalSpent - b.totalSpent;
-					break;
-				case "storedValue":
-					comparison = (a.storedValue ?? 0) - (b.storedValue ?? 0);
-					break;
-				case "status":
-					comparison = a.status.localeCompare(b.status);
-					break;
-			}
-			return sortDirection === "asc" ? comparison : -comparison;
-		});
-	}, [filteredCustomers, sortKey, sortDirection]);
-
-	const handleSort = (key: CustomerSortKey): void => {
-		if (sortKey === key) {
-			setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-		} else {
-			setSortKey(key);
-			setSortDirection("asc");
-		}
-	};
-
-	const getSortIcon = (key: CustomerSortKey): string => {
-		if (sortKey !== key) return "unfold_more";
-		return sortDirection === "asc" ? "keyboard_arrow_up" : "keyboard_arrow_down";
-	};
 
 	const openAddModal = (): void => {
 		setEditingCustomer(null);
@@ -136,7 +73,6 @@ export default function CustomersPage(): ReactElement {
 		};
 
 		if (editingCustomer !== null) {
-			// 수정 모드
 			if (USE_API) {
 				updateCustomerMutation.mutate({
 					id: Number(editingCustomer.id),
@@ -145,7 +81,6 @@ export default function CustomersPage(): ReactElement {
 			}
 			updateCustomer(editingCustomer.id, customerData);
 		} else {
-			// 생성 모드
 			if (USE_API) {
 				createCustomerMutation.mutate(customerData);
 			}
@@ -155,7 +90,6 @@ export default function CustomersPage(): ReactElement {
 
 	const handleDeactivate = (id: string): void => {
 		if (!confirm("이 고객을 비활성화 하시겠습니까?")) return;
-
 		updateCustomer(id, { status: "inactive" });
 	};
 
@@ -165,7 +99,6 @@ export default function CustomersPage(): ReactElement {
 
 	const handleDelete = (id: string): void => {
 		if (!confirm("정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) return;
-
 		deleteCustomer(id);
 	};
 
@@ -224,33 +157,26 @@ export default function CustomersPage(): ReactElement {
 			<div className="mb-6 grid grid-cols-5 gap-4">
 				<div className="rounded-xl border border-neutral-200 bg-white p-4">
 					<p className="text-sm text-neutral-500">전체 고객</p>
-					<p className="text-2xl font-bold text-neutral-800">{customers.length}</p>
+					<p className="text-2xl font-bold text-neutral-800">{stats.totalCount}</p>
 				</div>
 				<div className="rounded-xl border border-neutral-200 bg-white p-4">
 					<p className="text-sm text-neutral-500">VIP 고객</p>
-					<p className="text-2xl font-bold text-amber-600">
-						{customers.filter((c) => getCustomerTier(c.totalSpent) === "vip").length}
-					</p>
+					<p className="text-2xl font-bold text-amber-600">{stats.vipCount}</p>
 				</div>
 				<div className="rounded-xl border border-neutral-200 bg-white p-4">
 					<p className="text-sm text-neutral-500">활성 고객</p>
-					<p className="text-2xl font-bold text-green-600">
-						{customers.filter((c) => getAutoStatus(c.lastVisitDate) === "active").length}
-					</p>
+					<p className="text-2xl font-bold text-green-600">{stats.activeCount}</p>
 					<p className="text-xs text-neutral-400">90일 이내 방문</p>
 				</div>
 				<div className="rounded-xl border border-neutral-200 bg-white p-4">
 					<p className="text-sm text-neutral-500">휴면 위험</p>
-					<p className="text-2xl font-bold text-red-500">
-						{customers.filter((c) => getAutoStatus(c.lastVisitDate) === "inactive").length}
-					</p>
+					<p className="text-2xl font-bold text-red-500">{stats.inactiveCount}</p>
 					<p className="text-xs text-neutral-400">90일 이상 미방문</p>
 				</div>
 				<div className="rounded-xl border border-neutral-200 bg-white p-4">
 					<p className="text-sm text-neutral-500">총 LTV</p>
 					<p className="text-2xl font-bold text-blue-600">
-						{(customers.reduce((sum, c) => sum + c.totalSpent, 0) / 10000).toFixed(0)}
-						만원
+						{(stats.totalLtv / 10000).toFixed(0)}만원
 					</p>
 				</div>
 			</div>

@@ -1,4 +1,5 @@
-import type { ReactElement } from "react";
+import type { DragEvent, ReactElement } from "react";
+import { useState } from "react";
 import { TIME_SLOTS } from "./constants";
 import ReservationBlock from "./ReservationBlock";
 import type { Reservation } from "./types";
@@ -9,11 +10,18 @@ interface StaffForGrid {
 	color: string;
 }
 
+interface DropTarget {
+	staffId: string;
+	staffName: string;
+	time: string;
+}
+
 interface ReservationGridProps {
 	staff: StaffForGrid[];
 	reservations: Reservation[];
 	onSlotClick: (staffId: string, staffName: string, time: string) => void;
 	onReservationClick: (reservation: Reservation) => void;
+	onReservationDrop?: (reservationId: string, target: DropTarget) => void;
 }
 
 export default function ReservationGrid({
@@ -21,13 +29,41 @@ export default function ReservationGrid({
 	reservations,
 	onSlotClick,
 	onReservationClick,
+	onReservationDrop,
 }: ReservationGridProps): ReactElement {
+	const [dragOverSlot, setDragOverSlot] = useState<string | null>(null);
+
 	const getReservationsForStaff = (staffId: string): Reservation[] => {
 		return reservations.filter((r) => r.staffId === staffId);
 	};
 
 	// 슬롯 수 (10:00 ~ 20:00, 30분 단위)
 	const slotCount = TIME_SLOTS.length;
+
+	const handleDragOver = (e: DragEvent<HTMLDivElement>, staffId: string, time: string): void => {
+		e.preventDefault();
+		e.dataTransfer.dropEffect = "move";
+		setDragOverSlot(`${staffId}-${time}`);
+	};
+
+	const handleDragLeave = (): void => {
+		setDragOverSlot(null);
+	};
+
+	const handleDrop = (
+		e: DragEvent<HTMLDivElement>,
+		staffId: string,
+		staffName: string,
+		time: string,
+	): void => {
+		e.preventDefault();
+		setDragOverSlot(null);
+
+		const reservationId = e.dataTransfer.getData("text/plain");
+		if (!reservationId || !onReservationDrop) return;
+
+		onReservationDrop(reservationId, { staffId, staffName, time });
+	};
 
 	return (
 		<div
@@ -71,16 +107,30 @@ export default function ReservationGrid({
 
 							{/* 시간 슬롯 */}
 							<div className="relative flex flex-1">
-								{TIME_SLOTS.map((slot) => (
-									<div
-										key={slot.time}
-										data-empty-slot="true"
-										className="h-14 flex-1 cursor-pointer border-r border-neutral-100 transition-colors hover:bg-neutral-50"
-										onClick={() => {
-											onSlotClick(s.id, s.name, slot.time);
-										}}
-									/>
-								))}
+								{TIME_SLOTS.map((slot) => {
+									const slotKey = `${s.id}-${slot.time}`;
+									const isOver = dragOverSlot === slotKey;
+									return (
+										<div
+											key={slot.time}
+											data-empty-slot="true"
+											data-drop-zone="true"
+											data-staff-id={s.id}
+											data-time={slot.time}
+											className={`h-14 flex-1 cursor-pointer border-r border-neutral-100 transition-colors hover:bg-neutral-50 ${isOver ? "bg-primary-100" : ""}`}
+											onClick={() => {
+												onSlotClick(s.id, s.name, slot.time);
+											}}
+											onDragOver={(e) => {
+												handleDragOver(e, s.id, slot.time);
+											}}
+											onDragLeave={handleDragLeave}
+											onDrop={(e) => {
+												handleDrop(e, s.id, s.name, slot.time);
+											}}
+										/>
+									);
+								})}
 
 								{/* 예약 블록들 */}
 								{getReservationsForStaff(s.id).map((reservation) => (

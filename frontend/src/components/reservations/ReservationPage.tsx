@@ -1,7 +1,7 @@
 import { type ReactElement, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStaff } from "../../contexts/StaffContext";
-import { MOCK_RESERVATIONS, STATUS_CONFIG } from "./constants";
+import { isTimeConflict, MOCK_RESERVATIONS, STATUS_CONFIG } from "./constants";
 import ReservationCalendar from "./ReservationCalendar";
 import ReservationDetailModal from "./ReservationDetailModal";
 import ReservationFormModal from "./ReservationFormModal";
@@ -146,6 +146,44 @@ export default function ReservationPage(): ReactElement {
 		});
 	};
 
+	// 드래그 앤 드롭으로 예약 이동
+	const handleReservationDrop = (
+		reservationId: string,
+		target: { staffId: string; staffName: string; time: string },
+	): void => {
+		const reservation = reservations.find((r) => r.id === reservationId);
+		if (!reservation) return;
+
+		// 취소된 예약은 이동 불가
+		if (reservation.status === "cancelled") return;
+
+		// 충돌 검사
+		const hasConflict = reservations.some(
+			(r) =>
+				r.id !== reservationId &&
+				r.staffId === target.staffId &&
+				r.date === reservation.date &&
+				r.status !== "cancelled" &&
+				isTimeConflict(target.time, reservation.duration, r.startTime, r.duration),
+		);
+
+		if (hasConflict) return;
+
+		// 예약 업데이트
+		setReservations((prev) =>
+			prev.map((r) =>
+				r.id === reservationId
+					? {
+							...r,
+							staffId: target.staffId,
+							staffName: target.staffName,
+							startTime: target.time,
+						}
+					: r,
+			),
+		);
+	};
+
 	return (
 		<div className="flex h-full flex-col bg-neutral-50 p-6">
 			{/* Header */}
@@ -220,6 +258,7 @@ export default function ReservationPage(): ReactElement {
 				reservations={filteredReservations}
 				onSlotClick={handleSlotClick}
 				onReservationClick={handleReservationClick}
+				onReservationDrop={handleReservationDrop}
 			/>
 
 			{/* 예약 등록/수정 모달 */}

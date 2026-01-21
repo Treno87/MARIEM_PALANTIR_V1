@@ -215,7 +215,8 @@ describe("ReservationPage", () => {
 
 			await waitFor(() => {
 				expect(screen.getByLabelText("고객 *")).toBeInTheDocument();
-				expect(screen.getByLabelText("시술명 *")).toBeInTheDocument();
+				expect(screen.getByLabelText("시술 카테고리 *")).toBeInTheDocument();
+				expect(screen.getByLabelText("시술 *")).toBeInTheDocument();
 				expect(screen.getByLabelText("소요시간 *")).toBeInTheDocument();
 			});
 		});
@@ -235,9 +236,13 @@ describe("ReservationPage", () => {
 
 			// 폼 입력
 			const customerInput = screen.getByLabelText("고객 *");
-			const serviceInput = screen.getByLabelText("시술명 *");
 			fireEvent.change(customerInput, { target: { value: "테스트고객" } });
-			fireEvent.change(serviceInput, { target: { value: "테스트시술" } });
+
+			// 카테고리 선택 후 시술 선택
+			const categorySelect = screen.getByLabelText("시술 카테고리 *");
+			fireEvent.change(categorySelect, { target: { value: "cat1" } });
+			const serviceSelect = screen.getByLabelText("시술 *");
+			fireEvent.change(serviceSelect, { target: { value: "남자커트" } });
 
 			// 등록 버튼 클릭
 			const submitButton = screen.getByRole("button", { name: "등록" });
@@ -293,7 +298,7 @@ describe("ReservationPage", () => {
 				expect(screen.getByText("예약 수정")).toBeInTheDocument();
 				// 기존 값이 채워져 있음
 				expect(screen.getByLabelText("고객 *")).toHaveValue("김미영");
-				expect(screen.getByLabelText("시술명 *")).toHaveValue("여자커트");
+				expect(screen.getByLabelText("시술 *")).toHaveValue("여자커트");
 			});
 		});
 
@@ -321,15 +326,16 @@ describe("ReservationPage", () => {
 				expect(screen.getByText("예약 수정")).toBeInTheDocument();
 			});
 
-			// 시술명 수정 (userEvent 사용으로 더 정확한 React 상태 업데이트)
+			// 시술 변경 (카테고리 → 시술 선택)
 			const user = userEvent.setup();
-			const serviceInput = screen.getByLabelText("시술명 *");
-			await user.clear(serviceInput);
-			await user.type(serviceInput, "남자커트");
+			const categorySelect = screen.getByLabelText("시술 카테고리 *");
+			await user.selectOptions(categorySelect, "cat1");
+			const serviceSelect = screen.getByLabelText("시술 *");
+			await user.selectOptions(serviceSelect, "남자커트");
 
 			// 입력값 변경 확인
 			await waitFor(() => {
-				expect(serviceInput).toHaveValue("남자커트");
+				expect(serviceSelect).toHaveValue("남자커트");
 			});
 
 			// 저장 버튼 클릭
@@ -342,8 +348,8 @@ describe("ReservationPage", () => {
 
 			// 수정된 내용 반영 확인
 			const grid = screen.getByTestId("reservation-grid");
-			expect(grid.textContent.includes("여자커트")).toBe(false);
-			expect(grid.textContent.includes("남자커트")).toBe(true);
+			expect(grid.textContent).not.toContain("여자커트");
+			expect(grid.textContent).toContain("남자커트");
 		});
 	});
 
@@ -363,9 +369,13 @@ describe("ReservationPage", () => {
 
 			// 폼 입력
 			const customerInput = screen.getByLabelText("고객 *");
-			const serviceInput = screen.getByLabelText("시술명 *");
 			fireEvent.change(customerInput, { target: { value: "신규테스트고객" } });
-			fireEvent.change(serviceInput, { target: { value: "테스트시술" } });
+
+			// 카테고리 선택 후 시술 선택
+			const categorySelect = screen.getByLabelText("시술 카테고리 *");
+			fireEvent.change(categorySelect, { target: { value: "cat1" } });
+			const serviceSelect = screen.getByLabelText("시술 *");
+			fireEvent.change(serviceSelect, { target: { value: "여자커트" } });
 
 			// 등록 버튼 클릭
 			const submitButton = screen.getByRole("button", { name: "등록" });
@@ -373,6 +383,103 @@ describe("ReservationPage", () => {
 
 			await waitFor(() => {
 				expect(screen.getByText("신규테스트고객")).toBeInTheDocument();
+			});
+		});
+	});
+
+	describe("예약 폼 필드", () => {
+		it("예약 등록 모달에서 날짜 선택 필드가 표시된다", async () => {
+			render(<ReservationPage />);
+			const grid = screen.getByTestId("reservation-grid");
+			const emptySlot = grid.querySelector('[data-empty-slot="true"]');
+
+			if (emptySlot) {
+				fireEvent.click(emptySlot);
+			}
+
+			await waitFor(() => {
+				expect(screen.getByLabelText("예약 날짜 *")).toBeInTheDocument();
+			});
+		});
+
+		it("예약 등록 모달에서 시간 선택 드롭다운이 표시된다", async () => {
+			render(<ReservationPage />);
+			const grid = screen.getByTestId("reservation-grid");
+			const emptySlot = grid.querySelector('[data-empty-slot="true"]');
+
+			if (emptySlot) {
+				fireEvent.click(emptySlot);
+			}
+
+			await waitFor(() => {
+				expect(screen.getByLabelText("예약 시간 *")).toBeInTheDocument();
+			});
+		});
+
+		it("예약 등록 모달에서 시술 카테고리 선택이 표시된다", async () => {
+			render(<ReservationPage />);
+			const grid = screen.getByTestId("reservation-grid");
+			const emptySlot = grid.querySelector('[data-empty-slot="true"]');
+
+			if (emptySlot) {
+				fireEvent.click(emptySlot);
+			}
+
+			await waitFor(() => {
+				expect(screen.getByLabelText("시술 카테고리 *")).toBeInTheDocument();
+				expect(screen.getByLabelText("시술 *")).toBeInTheDocument();
+			});
+		});
+
+		it("시술 카테고리 선택 시 해당 시술 목록이 표시된다", async () => {
+			render(<ReservationPage />);
+			const grid = screen.getByTestId("reservation-grid");
+			const emptySlot = grid.querySelector('[data-empty-slot="true"]');
+
+			if (emptySlot) {
+				fireEvent.click(emptySlot);
+			}
+
+			await waitFor(() => {
+				expect(screen.getByLabelText("시술 카테고리 *")).toBeInTheDocument();
+			});
+
+			// 카테고리 선택
+			const categorySelect = screen.getByLabelText("시술 카테고리 *");
+			fireEvent.change(categorySelect, { target: { value: "cat1" } });
+
+			// 해당 카테고리의 시술이 시술 드롭다운에 표시됨
+			const serviceSelect = screen.getByLabelText("시술 *");
+			expect(serviceSelect).toBeInTheDocument();
+			// 커트 카테고리의 시술들이 옵션으로 존재하는지 확인
+			expect(screen.getByRole("option", { name: "남자커트" })).toBeInTheDocument();
+		});
+
+		it("예약 수정 시 기존 날짜/시간/시술이 선택되어 있다", async () => {
+			render(<ReservationPage />);
+			// Mock 데이터 날짜로 이동
+			const dayButton = screen.getByRole("button", { name: "21" });
+			fireEvent.click(dayButton);
+
+			await waitFor(() => {
+				expect(screen.getByText("김미영")).toBeInTheDocument();
+			});
+
+			// 예약 블록 클릭 → 상세 모달
+			fireEvent.click(screen.getByText("김미영"));
+
+			await waitFor(() => {
+				expect(screen.getByText("예약 상세")).toBeInTheDocument();
+			});
+
+			// 수정 버튼 클릭
+			fireEvent.click(screen.getByRole("button", { name: "수정" }));
+
+			await waitFor(() => {
+				expect(screen.getByText("예약 수정")).toBeInTheDocument();
+				// 기존 값들이 채워져 있는지 확인
+				expect(screen.getByLabelText("예약 날짜 *")).toHaveValue("2026-01-21");
+				expect(screen.getByLabelText("예약 시간 *")).toHaveValue("10:00");
 			});
 		});
 	});

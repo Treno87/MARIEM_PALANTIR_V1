@@ -6,18 +6,16 @@ interface ReservationBlockProps {
 	reservation: Reservation;
 	slotCount: number;
 	onClick: (reservation: Reservation) => void;
-	isOtherBlockDragging?: boolean;
+	isDragging?: boolean;
 	onDragStart?: () => void;
-	onDragEnd?: () => void;
 }
 
 export default function ReservationBlock({
 	reservation,
 	slotCount,
 	onClick,
-	isOtherBlockDragging = false,
+	isDragging = false,
 	onDragStart,
-	onDragEnd,
 }: ReservationBlockProps): ReactElement {
 	const startSlot = getTimeSlotIndex(reservation.startTime);
 	const slots = getDurationSlots(reservation.duration);
@@ -39,21 +37,16 @@ export default function ReservationBlock({
 		onDragStart?.();
 	};
 
-	const handleDragEnd = (): void => {
-		onDragEnd?.();
-	};
-
 	return (
 		<div
 			draggable={isDraggable}
 			onDragStart={handleDragStart}
-			onDragEnd={handleDragEnd}
 			className={`absolute top-1 cursor-pointer overflow-hidden rounded px-1 py-0.5 sm:px-2 sm:py-1 ${statusStyle.bg} ${isDraggable ? "cursor-grab active:cursor-grabbing" : ""}`}
 			style={{
 				left: `calc(${String(leftPercent)}% + 2px)`,
 				width: `calc(${String(widthPercent)}% - 4px)`,
 				height: "calc(100% - 8px)",
-				pointerEvents: isOtherBlockDragging ? "none" : "auto",
+				pointerEvents: isDragging ? "none" : "auto",
 			}}
 			onClick={() => {
 				onClick(reservation);

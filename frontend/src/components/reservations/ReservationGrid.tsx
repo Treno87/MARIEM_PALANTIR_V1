@@ -1,5 +1,5 @@
 import type { DragEvent, ReactElement } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TIME_SLOTS } from "./constants";
 import ReservationBlock from "./ReservationBlock";
 import type { Reservation } from "./types";
@@ -32,7 +32,7 @@ export default function ReservationGrid({
 	onReservationDrop,
 }: ReservationGridProps): ReactElement {
 	const [dragOverSlot, setDragOverSlot] = useState<string | null>(null);
-	const [isAnyBlockDragging, setIsAnyBlockDragging] = useState(false);
+	const [isDragging, setIsDragging] = useState(false);
 
 	const getReservationsForStaff = (staffId: string): Reservation[] => {
 		return reservations.filter((r) => r.staffId === staffId);
@@ -51,12 +51,22 @@ export default function ReservationGrid({
 	};
 
 	const handleBlockDragStart = (): void => {
-		setIsAnyBlockDragging(true);
+		// 동기적으로 pointer-events를 변경하면 브라우저가 드래그를 취소함
+		requestAnimationFrame(() => {
+			setIsDragging(true);
+		});
 	};
 
-	const handleBlockDragEnd = (): void => {
-		setIsAnyBlockDragging(false);
-	};
+	useEffect(() => {
+		const handleDocumentDragEnd = (): void => {
+			setIsDragging(false);
+		};
+
+		document.addEventListener("dragend", handleDocumentDragEnd);
+		return () => {
+			document.removeEventListener("dragend", handleDocumentDragEnd);
+		};
+	}, []);
 
 	const handleDrop = (
 		e: DragEvent<HTMLDivElement>,
@@ -147,9 +157,8 @@ export default function ReservationGrid({
 										reservation={reservation}
 										slotCount={slotCount}
 										onClick={onReservationClick}
-										isOtherBlockDragging={isAnyBlockDragging}
+										isDragging={isDragging}
 										onDragStart={handleBlockDragStart}
-										onDragEnd={handleBlockDragEnd}
 									/>
 								))}
 							</div>

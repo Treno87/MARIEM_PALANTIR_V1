@@ -1002,7 +1002,7 @@ describe("ReservationPage", () => {
 			expect(cancelledBlock).toHaveAttribute("draggable", "false");
 		});
 
-		it("드래그 시작 시 예약 블록에 pointer-events: none이 적용된다", async () => {
+		it("드래그 시작 시 모든 예약 블록에 pointer-events: none이 적용된다", async () => {
 			render(<ReservationPage />);
 			// Mock 데이터 날짜로 이동
 			const dayButton = screen.getByRole("button", { name: "21" });
@@ -1012,30 +1012,36 @@ describe("ReservationPage", () => {
 				expect(screen.getByText("김민지")).toBeInTheDocument();
 			});
 
-			// 김민지 예약 블록
-			const reservationBlock = screen.getByText("김민지").closest("[draggable]");
-			expect(reservationBlock).not.toBeNull();
-			if (reservationBlock === null) return;
+			// 김민지 예약 블록 (드래그할 블록)
+			const draggingBlock = screen.getByText("김민지").closest("[draggable]");
+			// 이서연 예약 블록 (다른 블록)
+			const otherBlock = screen.getByText("이서연").closest("[draggable]");
+			expect(draggingBlock).not.toBeNull();
+			expect(otherBlock).not.toBeNull();
+			if (draggingBlock === null || otherBlock === null) return;
 
-			// 드래그 시작 전에는 pointer-events가 auto
-			expect(reservationBlock).toHaveStyle({ pointerEvents: "auto" });
+			// 드래그 시작 전에는 모두 pointer-events가 auto
+			expect(draggingBlock).toHaveStyle({ pointerEvents: "auto" });
+			expect(otherBlock).toHaveStyle({ pointerEvents: "auto" });
 
 			// 드래그 시작
-			fireEvent.dragStart(reservationBlock, {
+			fireEvent.dragStart(draggingBlock, {
 				dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
 			});
 
-			// 드래그 중에는 pointer-events가 none으로 변경됨
+			// 드래그 중에는 모든 블록이 pointer-events: none (드롭 슬롯이 이벤트 받도록)
 			await waitFor(() => {
-				expect(reservationBlock).toHaveStyle({ pointerEvents: "none" });
+				expect(draggingBlock).toHaveStyle({ pointerEvents: "none" });
+				expect(otherBlock).toHaveStyle({ pointerEvents: "none" });
 			});
 
 			// 드래그 종료
-			fireEvent.dragEnd(reservationBlock);
+			fireEvent.dragEnd(draggingBlock);
 
-			// 드래그 종료 후 pointer-events가 다시 auto
+			// 드래그 종료 후 모두 pointer-events가 다시 auto
 			await waitFor(() => {
-				expect(reservationBlock).toHaveStyle({ pointerEvents: "auto" });
+				expect(draggingBlock).toHaveStyle({ pointerEvents: "auto" });
+				expect(otherBlock).toHaveStyle({ pointerEvents: "auto" });
 			});
 		});
 

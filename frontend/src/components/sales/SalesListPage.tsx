@@ -6,6 +6,7 @@ import { formatCurrency } from "../../utils/format";
 // 정렬 관련 타입
 type SalesSortKey = "date" | "customer" | "staff" | "total" | "status";
 type SortDirection = "asc" | "desc";
+type PeriodFilter = "today" | "week" | "month" | null;
 
 const statusConfig = {
 	completed: {
@@ -53,6 +54,12 @@ const getServiceColor = (name: string, type: string): { bg: string; text: string
 	return serviceColorConfig[name] ?? defaultColor;
 };
 
+const periodButtons: { key: PeriodFilter; label: string }[] = [
+	{ key: "today", label: "오늘" },
+	{ key: "week", label: "이번 주" },
+	{ key: "month", label: "이번 달" },
+];
+
 export default function SalesListPage(): ReactElement {
 	const { sales, voidSale, getSalesByDateRange } = useSales();
 	const [startDate, setStartDate] = useState<string>(getMonthStartDate());
@@ -60,6 +67,7 @@ export default function SalesListPage(): ReactElement {
 	const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
 	const [sortKey, setSortKey] = useState<SalesSortKey>("date");
 	const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+	const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("month");
 
 	const filteredSales = getSalesByDateRange(startDate, endDate);
 
@@ -113,6 +121,45 @@ export default function SalesListPage(): ReactElement {
 		}
 	};
 
+	const handlePeriodFilter = (period: PeriodFilter): void => {
+		if (period === null) return;
+		setPeriodFilter(period);
+		const today = new Date();
+		const todayStr = today.toISOString().split("T")[0] ?? "";
+
+		switch (period) {
+			case "today":
+				setStartDate(todayStr);
+				setEndDate(todayStr);
+				break;
+			case "week": {
+				const weekStart = new Date(today);
+				weekStart.setDate(today.getDate() - today.getDay());
+				const weekStartStr = weekStart.toISOString().split("T")[0] ?? "";
+				setStartDate(weekStartStr);
+				setEndDate(todayStr);
+				break;
+			}
+			case "month": {
+				const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+				const monthStartStr = monthStart.toISOString().split("T")[0] ?? "";
+				setStartDate(monthStartStr);
+				setEndDate(todayStr);
+				break;
+			}
+		}
+	};
+
+	const handleStartDateChange = (value: string): void => {
+		setStartDate(value);
+		setPeriodFilter(null);
+	};
+
+	const handleEndDateChange = (value: string): void => {
+		setEndDate(value);
+		setPeriodFilter(null);
+	};
+
 	const formatDateTime = (dateString: string): string => {
 		const date = new Date(dateString);
 		const month = date.getMonth() + 1;
@@ -132,13 +179,34 @@ export default function SalesListPage(): ReactElement {
 			<div className="mb-6 flex items-center justify-between">
 				<h1 className="text-2xl font-bold text-neutral-800">거래 내역</h1>
 				<div className="flex items-center gap-4">
+					{/* 기간 필터 버튼 */}
+					<div className="flex items-center gap-2">
+						{periodButtons.map((btn) => (
+							<button
+								key={btn.key}
+								onClick={() => {
+									handlePeriodFilter(btn.key);
+								}}
+								className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+									periodFilter === btn.key
+										? "bg-neutral-800 text-white"
+										: "bg-white text-neutral-600 hover:bg-neutral-100"
+								}`}
+							>
+								{btn.label}
+							</button>
+						))}
+					</div>
+					{/* 구분선 */}
+					<div className="h-6 w-px bg-neutral-300" />
+					{/* 날짜 입력 */}
 					<label className="flex items-center gap-2">
 						<span className="text-sm text-neutral-600">시작</span>
 						<input
 							type="date"
 							value={startDate}
 							onChange={(e) => {
-								setStartDate(e.target.value);
+								handleStartDateChange(e.target.value);
 							}}
 							aria-label="시작 날짜"
 							className="focus:border-primary-500 focus:ring-primary-500 rounded-lg border border-neutral-200 px-3 py-2 focus:ring-2 focus:outline-none"
@@ -151,7 +219,7 @@ export default function SalesListPage(): ReactElement {
 							type="date"
 							value={endDate}
 							onChange={(e) => {
-								setEndDate(e.target.value);
+								handleEndDateChange(e.target.value);
 							}}
 							aria-label="종료 날짜"
 							className="focus:border-primary-500 focus:ring-primary-500 rounded-lg border border-neutral-200 px-3 py-2 focus:ring-2 focus:outline-none"

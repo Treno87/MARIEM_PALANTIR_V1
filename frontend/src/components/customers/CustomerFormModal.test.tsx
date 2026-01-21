@@ -140,6 +140,7 @@ describe("CustomerFormModal", () => {
 			status: "active",
 			visitCount: 5,
 			totalSpent: 500000,
+			createdAt: "2026-01-01T00:00:00.000Z",
 		};
 
 		it("기존 고객 정보로 폼이 초기화된다", () => {

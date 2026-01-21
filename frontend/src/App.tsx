@@ -8,6 +8,7 @@ import CustomersPage from "./components/customers/CustomersPage";
 import LandingPage from "./components/landing/LandingPage";
 import AppLayout from "./components/layout/AppLayout";
 import ReportsPage from "./components/reports/ReportsPage";
+import ReservationPage from "./components/reservations/ReservationPage";
 import SalePage from "./components/sale/SalePage";
 import SalesListPage from "./components/sales/SalesListPage";
 import StaffPage from "./components/staff/StaffPage";
@@ -38,6 +39,7 @@ function App(): React.ReactElement {
 											<Route path="/catalog/events" element={<EventsPage />} />
 											<Route path="/dashboard" element={<PlaceholderPage title="대시보드" />} />
 											<Route path="/sales" element={<SalesListPage />} />
+											<Route path="/reservations" element={<ReservationPage />} />
 											<Route path="/reports" element={<ReportsPage />} />
 											<Route path="/customers" element={<CustomersPage />} />
 											<Route path="/settings" element={<PlaceholderPage title="설정" />} />

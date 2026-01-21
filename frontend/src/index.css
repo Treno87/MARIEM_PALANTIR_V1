@@ -275,3 +275,8 @@ body {
 	direction: ltr;
 	-webkit-font-smoothing: antialiased;
 }
+
+/* Reservation Grid - Slot Width (percentage based) */
+:root {
+	--slot-count: 21;
+}

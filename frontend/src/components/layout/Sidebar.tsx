@@ -25,6 +25,7 @@ const mainNavItems: NavItem[] = [
 	{ icon: "dashboard", label: "대시보드", path: "/dashboard" },
 	{ icon: "point_of_sale", label: "거래 입력", path: "/sale", filled: true },
 	{ icon: "receipt_long", label: "거래 내역", path: "/sales" },
+	{ icon: "calendar_month", label: "예약관리", path: "/reservations" },
 	{ icon: "analytics", label: "리포트", path: "/reports" },
 ];
 

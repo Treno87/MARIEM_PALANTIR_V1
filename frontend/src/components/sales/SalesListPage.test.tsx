@@ -97,8 +97,11 @@ describe("SalesListPage", () => {
 			expect(completedItems.length).toBeGreaterThan(0);
 
 			// 첫 번째 거래 행 클릭
-			const firstRow = screen.getAllByRole("row")[1]; // 헤더 제외
-			fireEvent.click(firstRow);
+			const rows = screen.getAllByRole("row");
+			const firstRow = rows[1]; // 헤더 제외
+			if (firstRow) {
+				fireEvent.click(firstRow);
+			}
 
 			await waitFor(() => {
 				// 상세 모달 표시
@@ -117,10 +120,69 @@ describe("SalesListPage", () => {
 
 			// 취소 버튼 클릭
 			const cancelButtons = screen.getAllByRole("button", { name: /취소/ });
-			if (cancelButtons.length > 0) {
-				fireEvent.click(cancelButtons[0]);
+			const firstCancelButton = cancelButtons[0];
+			if (firstCancelButton) {
+				fireEvent.click(firstCancelButton);
 				expect(vi.mocked(confirm)).toHaveBeenCalled();
 			}
+		});
+	});
+
+	describe("기간 필터 버튼", () => {
+		it("오늘, 이번 주, 이번 달 버튼이 렌더링된다", () => {
+			render(<SalesListPage />);
+			expect(screen.getByRole("button", { name: "오늘" })).toBeInTheDocument();
+			expect(screen.getByRole("button", { name: "이번 주" })).toBeInTheDocument();
+			expect(screen.getByRole("button", { name: "이번 달" })).toBeInTheDocument();
+		});
+
+		it("이번 달 버튼이 기본으로 활성화되어 있다", () => {
+			render(<SalesListPage />);
+			const monthButton = screen.getByRole("button", { name: "이번 달" });
+			expect(monthButton).toHaveClass("bg-neutral-800", "text-white");
+		});
+
+		it("오늘 버튼 클릭 시 버튼이 활성화되고 날짜가 오늘로 설정된다", async () => {
+			render(<SalesListPage />);
+			const todayButton = screen.getByRole("button", { name: "오늘" });
+			fireEvent.click(todayButton);
+
+			await waitFor(() => {
+				expect(todayButton).toHaveClass("bg-neutral-800", "text-white");
+			});
+
+			// 이번 달 버튼은 비활성화
+			const monthButton = screen.getByRole("button", { name: "이번 달" });
+			expect(monthButton).not.toHaveClass("bg-neutral-800");
+		});
+
+		it("이번 주 버튼 클릭 시 버튼이 활성화된다", async () => {
+			render(<SalesListPage />);
+			const weekButton = screen.getByRole("button", { name: "이번 주" });
+			fireEvent.click(weekButton);
+
+			await waitFor(() => {
+				expect(weekButton).toHaveClass("bg-neutral-800", "text-white");
+			});
+		});
+
+		it("날짜 직접 입력 시 기간 버튼이 비활성화된다", async () => {
+			render(<SalesListPage />);
+
+			// 먼저 "이번 달" 버튼이 활성화 상태인지 확인
+			const monthButton = screen.getByRole("button", { name: "이번 달" });
+			expect(monthButton).toHaveClass("bg-neutral-800");
+
+			// 날짜 직접 입력
+			const startInput = screen.getByLabelText("시작 날짜");
+			fireEvent.change(startInput, { target: { value: "2026-01-10" } });
+
+			await waitFor(() => {
+				// 모든 기간 버튼이 비활성화되어야 함
+				expect(screen.getByRole("button", { name: "오늘" })).not.toHaveClass("bg-neutral-800");
+				expect(screen.getByRole("button", { name: "이번 주" })).not.toHaveClass("bg-neutral-800");
+				expect(screen.getByRole("button", { name: "이번 달" })).not.toHaveClass("bg-neutral-800");
+			});
 		});
 	});
 

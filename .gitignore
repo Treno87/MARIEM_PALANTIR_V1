@@ -61,3 +61,4 @@
 
 # Bootsnap cache
 /tmp/cache/bootsnap*
+.venv/

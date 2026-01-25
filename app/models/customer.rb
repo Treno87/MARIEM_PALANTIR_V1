@@ -9,7 +9,6 @@ class Customer < ApplicationRecord
   has_many :point_transactions, dependent: :destroy
 
   validates :name, presence: true
-  validates :phone, presence: true
 
   def point_balance
     point_transactions.sum(:points_delta)

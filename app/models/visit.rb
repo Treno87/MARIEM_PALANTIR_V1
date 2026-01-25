@@ -11,11 +11,16 @@ class Visit < ApplicationRecord
   has_many :inventory_events, dependent: :nullify
 
   STATUSES = %w[draft finalized].freeze
-  VISIT_TYPES = %w[new returning substitute].freeze
+
+  # 방문 유형: new(신규), returning(재방), substitute(대체 시술),
+  #           referral(소개 방문), guest(일회성 방문)
+  VISIT_TYPES = %w[new returning substitute referral guest].freeze
   VISIT_TYPE_MAP = {
     "신규" => "new",
     "재방" => "returning",
-    "대체" => "substitute"
+    "대체" => "substitute",
+    "소개" => "referral",
+    "손님" => "guest"
   }.freeze
 
   def self.normalize_visit_type(korean_value)

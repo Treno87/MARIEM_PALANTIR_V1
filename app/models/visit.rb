@@ -11,6 +11,16 @@ class Visit < ApplicationRecord
   has_many :inventory_events, dependent: :nullify
 
   STATUSES = %w[draft finalized].freeze
+  VISIT_TYPES = %w[new returning substitute].freeze
+  VISIT_TYPE_MAP = {
+    "신규" => "new",
+    "재방" => "returning",
+    "대체" => "substitute"
+  }.freeze
+
+  def self.normalize_visit_type(korean_value)
+    VISIT_TYPE_MAP[korean_value]
+  end
 
   validates :visited_at, presence: true
   validates :status, presence: true, inclusion: { in: STATUSES }

@@ -1,13 +1,13 @@
-/* Custom fonts - Pretendard (Korean) + Material Symbols */
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+/* Custom fonts - Google Fonts (must be before tailwind) */
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
 
 @import "tailwindcss";
 
 /* Theme variables */
 @theme {
-	--font-display: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-	--font-body: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+	--font-display: "Manrope", sans-serif;
+	--font-body: "Manrope", sans-serif;
 
 	/* Primary - Blue (Monday.com style) */
 	--color-primary-50: #e6f4ff;

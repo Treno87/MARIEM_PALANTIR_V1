@@ -249,7 +249,7 @@ export default function ServicesPage(): React.ReactElement {
 							{currentCategory && (
 								<button
 									onClick={openAddItemModal}
-									className="bg-primary-500 hover:bg-primary-600 flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+									className="bg-primary-500 hover:bg-primary-600 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-white transition-colors"
 								>
 									<span className="material-symbols-outlined text-lg">add</span>
 									시술 추가
@@ -366,7 +366,7 @@ export default function ServicesPage(): React.ReactElement {
 							<button
 								onClick={handleCategorySubmit}
 								disabled={!categoryForm.name.trim()}
-								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 							>
 								{editingCategory ? "수정" : "추가"}
 							</button>
@@ -438,7 +438,7 @@ export default function ServicesPage(): React.ReactElement {
 							<button
 								onClick={handleItemSubmit}
 								disabled={!itemForm.name.trim() || !itemForm.price}
-								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 							>
 								{editingItem ? "수정" : "추가"}
 							</button>

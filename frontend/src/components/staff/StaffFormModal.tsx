@@ -1,5 +1,5 @@
-import type { ReactElement } from "react";
 import { useState } from "react";
+import { useStaff } from "../../contexts/StaffContext";
 import {
 	defaultPermissionsByRole,
 	genderOptions,
@@ -20,7 +20,7 @@ const colorOptions = [
 	"#6b7280",
 ];
 
-export interface StaffFormData {
+interface StaffFormData {
 	name: string;
 	role: StaffRole;
 	phone: string;
@@ -52,6 +52,20 @@ const INITIAL_FORM_DATA: StaffFormData = {
 	permissions: { ...defaultPermissionsByRole.designer },
 };
 
+const formDataToStaffFields = (data: StaffFormData) => ({
+	name: data.name,
+	role: data.role,
+	phone: data.phone || undefined,
+	color: data.color,
+	joinDate: data.joinDate || undefined,
+	showInSales: data.showInSales,
+	gender: data.gender,
+	birthDate: data.birthDate || undefined,
+	address: data.address || undefined,
+	memo: data.memo || undefined,
+	permissions: { ...data.permissions },
+});
+
 const staffToFormData = (staff: Staff): StaffFormData => ({
 	name: staff.name,
 	role: staff.role,
@@ -69,30 +83,30 @@ const staffToFormData = (staff: Staff): StaffFormData => ({
 interface StaffFormModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	onSubmit: (data: StaffFormData) => void;
-	mode: "create" | "edit";
-	staff?: Staff;
+	editingStaff?: Staff | null;
 }
 
-const getInitialFormData = (mode: "create" | "edit", staff?: Staff): StaffFormData => {
-	if (mode === "edit" && staff !== undefined) {
-		return staffToFormData(staff);
-	}
-	return { ...INITIAL_FORM_DATA, joinDate: getToday() };
-};
-
-export default function StaffFormModal({
-	isOpen,
-	onClose,
-	onSubmit,
-	mode,
-	staff,
-}: StaffFormModalProps): ReactElement | null {
-	const [formData, setFormData] = useState<StaffFormData>(() => getInitialFormData(mode, staff));
+export function StaffFormModal({ isOpen, onClose, editingStaff = null }: StaffFormModalProps) {
+	const { staffList, addStaff, updateStaff } = useStaff();
+	const [formData, setFormData] = useState<StaffFormData>(() =>
+		editingStaff ? staffToFormData(editingStaff) : { ...INITIAL_FORM_DATA, joinDate: getToday() },
+	);
 
 	const handleSubmit = (): void => {
 		if (!formData.name.trim()) return;
-		onSubmit(formData);
+
+		if (editingStaff) {
+			updateStaff(editingStaff.id, formDataToStaffFields(formData));
+		} else {
+			const newStaff: Staff = {
+				id: `staff-${String(Date.now())}`,
+				...formDataToStaffFields(formData),
+				employmentStatus: "active",
+				displayOrder: staffList.length + 1,
+			};
+			addStaff(newStaff);
+		}
+		onClose();
 	};
 
 	if (!isOpen) return null;
@@ -102,7 +116,7 @@ export default function StaffFormModal({
 			<div className="mx-4 w-full max-w-2xl overflow-hidden rounded-2xl bg-white">
 				<div className="border-b border-neutral-200 p-6">
 					<h2 className="text-xl font-bold text-neutral-800">
-						{mode === "edit" ? "직원 수정" : "직원 추가"}
+						{editingStaff ? "직원 수정" : "직원 추가"}
 					</h2>
 				</div>
 				<div className="max-h-[70vh] space-y-6 overflow-y-auto p-6">
@@ -202,7 +216,6 @@ export default function StaffFormModal({
 									<button
 										key={color}
 										type="button"
-										data-testid={`color-${color}`}
 										onClick={() => {
 											setFormData((prev) => ({ ...prev, color }));
 										}}
@@ -366,9 +379,9 @@ export default function StaffFormModal({
 						type="button"
 						onClick={handleSubmit}
 						disabled={!formData.name.trim()}
-						className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+						className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 					>
-						{mode === "edit" ? "수정" : "추가"}
+						{editingStaff ? "수정" : "추가"}
 					</button>
 				</div>
 			</div>

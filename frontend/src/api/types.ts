@@ -68,13 +68,10 @@ export interface Payment {
 	amount: number;
 }
 
-export type VisitType = "new" | "returning" | "substitute";
-
 export interface Visit {
 	id: number;
 	visited_at: string;
 	status: "draft" | "finalized";
-	visit_type: VisitType | null;
 	voided: boolean;
 	voided_at: string | null;
 	subtotal_amount: number;

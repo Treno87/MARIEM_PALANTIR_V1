@@ -4,15 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "../../test/test-utils";
 import ReservationPage from "./ReservationPage";
 
-const mockNavigate = vi.fn();
-vi.mock("react-router-dom", async () => {
-	const actual = await vi.importActual("react-router-dom");
-	return {
-		...actual,
-		useNavigate: () => mockNavigate,
-	};
-});
-
 describe("ReservationPage", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -189,7 +180,7 @@ describe("ReservationPage", () => {
 				today.getFullYear() === 2026 && today.getMonth() === 0 && today.getDate() === 21;
 
 			if (isMockDate) {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
+				expect(screen.getByText("김미영")).toBeInTheDocument();
 			} else {
 				// Mock 날짜로 이동
 				expect(screen.getByTestId("reservation-grid")).toBeInTheDocument();
@@ -198,16 +189,6 @@ describe("ReservationPage", () => {
 	});
 
 	describe("예약 등록", () => {
-		it("예약추가 버튼 클릭 시 예약 등록 모달이 열린다", async () => {
-			render(<ReservationPage />);
-			const addButton = screen.getByRole("button", { name: /예약추가/ });
-			fireEvent.click(addButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 등록")).toBeInTheDocument();
-			});
-		});
-
 		it("빈 슬롯 클릭 시 예약 등록 모달이 열린다", async () => {
 			render(<ReservationPage />);
 			const grid = screen.getByTestId("reservation-grid");
@@ -233,10 +214,8 @@ describe("ReservationPage", () => {
 			}
 
 			await waitFor(() => {
-				expect(screen.getByText("고객 *")).toBeInTheDocument();
-				expect(screen.getByText("고객 선택")).toBeInTheDocument();
-				expect(screen.getByLabelText("시술 카테고리 *")).toBeInTheDocument();
-				expect(screen.getByLabelText("시술 *")).toBeInTheDocument();
+				expect(screen.getByLabelText("고객 *")).toBeInTheDocument();
+				expect(screen.getByLabelText("시술명 *")).toBeInTheDocument();
 				expect(screen.getByLabelText("소요시간 *")).toBeInTheDocument();
 			});
 		});
@@ -254,18 +233,11 @@ describe("ReservationPage", () => {
 				expect(screen.getByText("예약 등록")).toBeInTheDocument();
 			});
 
-			// 고객 선택 (CustomerSelect 사용) - 장원영은 예약에 없으므로 유일함
-			fireEvent.click(screen.getByText("고객 선택"));
-			await waitFor(() => {
-				expect(screen.getByPlaceholderText("검색...")).toBeInTheDocument();
-			});
-			fireEvent.click(screen.getByText("장원영"));
-
-			// 카테고리 선택 후 시술 선택
-			const categorySelect = screen.getByLabelText("시술 카테고리 *");
-			fireEvent.change(categorySelect, { target: { value: "cat1" } });
-			const serviceSelect = screen.getByLabelText("시술 *");
-			fireEvent.change(serviceSelect, { target: { value: "남자커트" } });
+			// 폼 입력
+			const customerInput = screen.getByLabelText("고객 *");
+			const serviceInput = screen.getByLabelText("시술명 *");
+			fireEvent.change(customerInput, { target: { value: "테스트고객" } });
+			fireEvent.change(serviceInput, { target: { value: "테스트시술" } });
 
 			// 등록 버튼 클릭
 			const submitButton = screen.getByRole("button", { name: "등록" });
@@ -285,11 +257,11 @@ describe("ReservationPage", () => {
 			fireEvent.click(dayButton);
 
 			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
+				expect(screen.getByText("김미영")).toBeInTheDocument();
 			});
 
 			// 예약 블록 클릭
-			fireEvent.click(screen.getByText("김민지"));
+			fireEvent.click(screen.getByText("김미영"));
 
 			await waitFor(() => {
 				expect(screen.getByText("예약 상세")).toBeInTheDocument();
@@ -304,13 +276,11 @@ describe("ReservationPage", () => {
 			fireEvent.click(dayButton);
 
 			await waitFor(() => {
-				// 김민지가 그리드에 표시됨
-				expect(screen.getAllByText("김민지").length).toBeGreaterThan(0);
+				expect(screen.getByText("김미영")).toBeInTheDocument();
 			});
 
-			// 예약 블록 클릭 (그리드 내 첫 번째 김민지)
-			const customerNames = screen.getAllByText("김민지");
-			fireEvent.click(customerNames[0]);
+			// 예약 블록 클릭
+			fireEvent.click(screen.getByText("김미영"));
 
 			await waitFor(() => {
 				expect(screen.getByText("예약 상세")).toBeInTheDocument();
@@ -321,9 +291,9 @@ describe("ReservationPage", () => {
 
 			await waitFor(() => {
 				expect(screen.getByText("예약 수정")).toBeInTheDocument();
-				// 기존 고객이 선택되어 있음 (그리드와 모달에 김민지가 각각 표시)
-				expect(screen.getAllByText("김민지").length).toBeGreaterThanOrEqual(2);
-				expect(screen.getByLabelText("시술 *")).toHaveValue("여자커트");
+				// 기존 값이 채워져 있음
+				expect(screen.getByLabelText("고객 *")).toHaveValue("김미영");
+				expect(screen.getByLabelText("시술명 *")).toHaveValue("여자커트");
 			});
 		});
 
@@ -334,11 +304,11 @@ describe("ReservationPage", () => {
 			fireEvent.click(dayButton);
 
 			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
+				expect(screen.getByText("김미영")).toBeInTheDocument();
 			});
 
 			// 예약 블록 클릭 → 상세 모달
-			fireEvent.click(screen.getByText("김민지"));
+			fireEvent.click(screen.getByText("김미영"));
 
 			await waitFor(() => {
 				expect(screen.getByText("예약 상세")).toBeInTheDocument();
@@ -351,16 +321,15 @@ describe("ReservationPage", () => {
 				expect(screen.getByText("예약 수정")).toBeInTheDocument();
 			});
 
-			// 시술 변경 (카테고리 → 시술 선택)
+			// 시술명 수정 (userEvent 사용으로 더 정확한 React 상태 업데이트)
 			const user = userEvent.setup();
-			const categorySelect = screen.getByLabelText("시술 카테고리 *");
-			await user.selectOptions(categorySelect, "cat1");
-			const serviceSelect = screen.getByLabelText("시술 *");
-			await user.selectOptions(serviceSelect, "남자커트");
+			const serviceInput = screen.getByLabelText("시술명 *");
+			await user.clear(serviceInput);
+			await user.type(serviceInput, "남자커트");
 
 			// 입력값 변경 확인
 			await waitFor(() => {
-				expect(serviceSelect).toHaveValue("남자커트");
+				expect(serviceInput).toHaveValue("남자커트");
 			});
 
 			// 저장 버튼 클릭
@@ -373,87 +342,12 @@ describe("ReservationPage", () => {
 
 			// 수정된 내용 반영 확인
 			const grid = screen.getByTestId("reservation-grid");
-			expect(grid.textContent).not.toContain("여자커트");
-			expect(grid.textContent).toContain("남자커트");
+			expect(grid.textContent.includes("여자커트")).toBe(false);
+			expect(grid.textContent.includes("남자커트")).toBe(true);
 		});
 	});
 
 	describe("예약 상세 모달", () => {
-		it("버튼이 아이콘으로 표시된다 (거래입력, 수정, 취소, 닫기)", async () => {
-			render(<ReservationPage />);
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			fireEvent.click(screen.getByText("김민지"));
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 상세")).toBeInTheDocument();
-			});
-
-			// 아이콘 버튼들이 존재하는지 확인
-			expect(screen.getByRole("button", { name: "거래입력" })).toBeInTheDocument();
-			expect(screen.getByRole("button", { name: "수정" })).toBeInTheDocument();
-			expect(screen.getByRole("button", { name: "취소" })).toBeInTheDocument();
-			expect(screen.getByRole("button", { name: "닫기" })).toBeInTheDocument();
-		});
-
-		it("버튼 순서가 거래입력, 수정, 취소, 닫기 순이다", async () => {
-			render(<ReservationPage />);
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			fireEvent.click(screen.getByText("김민지"));
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 상세")).toBeInTheDocument();
-			});
-
-			// 버튼 순서 확인 (footer 내 버튼들)
-			const footer = screen.getByTestId("detail-modal-footer");
-			const buttons = footer.querySelectorAll("button");
-			expect(buttons[0]).toHaveAccessibleName("거래입력");
-			expect(buttons[1]).toHaveAccessibleName("수정");
-			expect(buttons[2]).toHaveAccessibleName("취소");
-			expect(buttons[3]).toHaveAccessibleName("닫기");
-		});
-
-		it("거래입력 버튼 클릭 시 /sale 페이지로 이동하며 예약 정보가 전달된다", async () => {
-			render(<ReservationPage />);
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			fireEvent.click(screen.getByText("김민지"));
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 상세")).toBeInTheDocument();
-			});
-
-			const saleButton = screen.getByRole("button", { name: "거래입력" });
-			fireEvent.click(saleButton);
-
-			expect(mockNavigate).toHaveBeenCalledWith("/sale", {
-				state: {
-					customerId: "1",
-					customerName: "김민지",
-					staffId: "1",
-					staffName: "김정희",
-					serviceName: "여자커트",
-				},
-			});
-		});
-
 		it("빈 슬롯 클릭 후 예약 등록하면 새 예약이 추가된다", async () => {
 			render(<ReservationPage />);
 			const grid = screen.getByTestId("reservation-grid");
@@ -467,626 +361,18 @@ describe("ReservationPage", () => {
 				expect(screen.getByText("예약 등록")).toBeInTheDocument();
 			});
 
-			// 고객 선택 (CustomerSelect 사용)
-			fireEvent.click(screen.getByText("고객 선택"));
-			await waitFor(() => {
-				expect(screen.getByPlaceholderText("검색...")).toBeInTheDocument();
-			});
-			fireEvent.click(screen.getByText("장원영"));
-
-			// 카테고리 선택 후 시술 선택
-			const categorySelect = screen.getByLabelText("시술 카테고리 *");
-			fireEvent.change(categorySelect, { target: { value: "cat1" } });
-			const serviceSelect = screen.getByLabelText("시술 *");
-			fireEvent.change(serviceSelect, { target: { value: "여자커트" } });
+			// 폼 입력
+			const customerInput = screen.getByLabelText("고객 *");
+			const serviceInput = screen.getByLabelText("시술명 *");
+			fireEvent.change(customerInput, { target: { value: "신규테스트고객" } });
+			fireEvent.change(serviceInput, { target: { value: "테스트시술" } });
 
 			// 등록 버튼 클릭
 			const submitButton = screen.getByRole("button", { name: "등록" });
 			fireEvent.click(submitButton);
 
 			await waitFor(() => {
-				// 새 예약이 그리드에 추가됨 (이서연)
-				expect(screen.queryByText("예약 등록")).not.toBeInTheDocument();
-			});
-		});
-	});
-
-	describe("예약 폼 필드", () => {
-		it("예약 등록 모달에서 날짜 선택 필드가 표시된다", async () => {
-			render(<ReservationPage />);
-			const grid = screen.getByTestId("reservation-grid");
-			const emptySlot = grid.querySelector('[data-empty-slot="true"]');
-
-			if (emptySlot) {
-				fireEvent.click(emptySlot);
-			}
-
-			await waitFor(() => {
-				expect(screen.getByLabelText("예약 날짜 *")).toBeInTheDocument();
-			});
-		});
-
-		it("예약 등록 모달에서 시간 선택 드롭다운이 표시된다", async () => {
-			render(<ReservationPage />);
-			const grid = screen.getByTestId("reservation-grid");
-			const emptySlot = grid.querySelector('[data-empty-slot="true"]');
-
-			if (emptySlot) {
-				fireEvent.click(emptySlot);
-			}
-
-			await waitFor(() => {
-				expect(screen.getByLabelText("예약 시간 *")).toBeInTheDocument();
-			});
-		});
-
-		it("예약 등록 모달에서 시술 카테고리 선택이 표시된다", async () => {
-			render(<ReservationPage />);
-			const grid = screen.getByTestId("reservation-grid");
-			const emptySlot = grid.querySelector('[data-empty-slot="true"]');
-
-			if (emptySlot) {
-				fireEvent.click(emptySlot);
-			}
-
-			await waitFor(() => {
-				expect(screen.getByLabelText("시술 카테고리 *")).toBeInTheDocument();
-				expect(screen.getByLabelText("시술 *")).toBeInTheDocument();
-			});
-		});
-
-		it("시술 카테고리 선택 시 해당 시술 목록이 표시된다", async () => {
-			render(<ReservationPage />);
-			const grid = screen.getByTestId("reservation-grid");
-			const emptySlot = grid.querySelector('[data-empty-slot="true"]');
-
-			if (emptySlot) {
-				fireEvent.click(emptySlot);
-			}
-
-			await waitFor(() => {
-				expect(screen.getByLabelText("시술 카테고리 *")).toBeInTheDocument();
-			});
-
-			// 카테고리 선택
-			const categorySelect = screen.getByLabelText("시술 카테고리 *");
-			fireEvent.change(categorySelect, { target: { value: "cat1" } });
-
-			// 해당 카테고리의 시술이 시술 드롭다운에 표시됨
-			const serviceSelect = screen.getByLabelText("시술 *");
-			expect(serviceSelect).toBeInTheDocument();
-			// 커트 카테고리의 시술들이 옵션으로 존재하는지 확인
-			expect(screen.getByRole("option", { name: "남자커트" })).toBeInTheDocument();
-		});
-
-		it("예약 수정 시 기존 날짜/시간/시술이 선택되어 있다", async () => {
-			render(<ReservationPage />);
-			// Mock 데이터 날짜로 이동
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			// 예약 블록 클릭 → 상세 모달
-			fireEvent.click(screen.getByText("김민지"));
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 상세")).toBeInTheDocument();
-			});
-
-			// 수정 버튼 클릭
-			fireEvent.click(screen.getByRole("button", { name: "수정" }));
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 수정")).toBeInTheDocument();
-				// 기존 값들이 채워져 있는지 확인
-				expect(screen.getByLabelText("예약 날짜 *")).toHaveValue("2026-01-21");
-				expect(screen.getByLabelText("예약 시간 *")).toHaveValue("10:00");
-			});
-		});
-	});
-
-	describe("예약 충돌 검사", () => {
-		it("충돌하는 예약이 있으면 경고 메시지가 표시된다", async () => {
-			render(<ReservationPage />);
-			// Mock 데이터 날짜(2026-01-21)로 이동 - 김민지 10:00 예약이 있음
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			// 김정희 담당자의 빈 슬롯 클릭 (14:00은 이서연 예약이 있음)
-			const grid = screen.getByTestId("reservation-grid");
-			// 이서연의 예약 시간대(14:00)와 충돌하는 시간 설정
-			const emptySlot = grid.querySelector('[data-empty-slot="true"]');
-			if (emptySlot) {
-				fireEvent.click(emptySlot);
-			}
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 등록")).toBeInTheDocument();
-			});
-
-			// 고객 선택 (CustomerSelect 사용) - 장원영은 예약에 없으므로 충돌 없음
-			fireEvent.click(screen.getByText("고객 선택"));
-			await waitFor(() => {
-				expect(screen.getByPlaceholderText("검색...")).toBeInTheDocument();
-			});
-			fireEvent.click(screen.getByText("장원영"));
-
-			// 카테고리 선택 후 시술 선택
-			fireEvent.change(screen.getByLabelText("시술 카테고리 *"), {
-				target: { value: "cat1" },
-			});
-			fireEvent.change(screen.getByLabelText("시술 *"), {
-				target: { value: "남자커트" },
-			});
-
-			// 김정희 담당자 선택, 10:00 시간대 선택 (김민지 예약과 충돌)
-			fireEvent.change(screen.getByLabelText("담당자 *"), {
-				target: { value: "1" },
-			});
-			fireEvent.change(screen.getByLabelText("예약 시간 *"), {
-				target: { value: "10:00" },
-			});
-
-			// 충돌 경고 메시지 확인
-			await waitFor(() => {
-				expect(screen.getByText("예약 시간이 충돌합니다")).toBeInTheDocument();
-				expect(screen.getByText(/김민지님의 예약/)).toBeInTheDocument();
-			});
-		});
-
-		it("충돌하는 예약이 있으면 저장 버튼이 비활성화된다", async () => {
-			render(<ReservationPage />);
-			// Mock 데이터 날짜로 이동
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			// 빈 슬롯 클릭
-			const grid = screen.getByTestId("reservation-grid");
-			const emptySlot = grid.querySelector('[data-empty-slot="true"]');
-			if (emptySlot) {
-				fireEvent.click(emptySlot);
-			}
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 등록")).toBeInTheDocument();
-			});
-
-			// 고객 선택 (CustomerSelect 사용)
-			fireEvent.click(screen.getByText("고객 선택"));
-			await waitFor(() => {
-				expect(screen.getByPlaceholderText("검색...")).toBeInTheDocument();
-			});
-			fireEvent.click(screen.getByText("장원영"));
-
-			// 카테고리 선택 후 시술 선택
-			fireEvent.change(screen.getByLabelText("시술 카테고리 *"), {
-				target: { value: "cat1" },
-			});
-			fireEvent.change(screen.getByLabelText("시술 *"), {
-				target: { value: "남자커트" },
-			});
-
-			// 김정희 담당자 선택, 10:00 시간대 선택 (김민지 예약과 충돌)
-			fireEvent.change(screen.getByLabelText("담당자 *"), {
-				target: { value: "1" },
-			});
-			fireEvent.change(screen.getByLabelText("예약 시간 *"), {
-				target: { value: "10:00" },
-			});
-
-			// 등록 버튼이 비활성화됨
-			await waitFor(() => {
-				const submitButton = screen.getByRole("button", { name: "등록" });
-				expect(submitButton).toBeDisabled();
-			});
-		});
-
-		it("충돌을 해소하면 저장 버튼이 활성화된다", async () => {
-			render(<ReservationPage />);
-			// Mock 데이터 날짜로 이동
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			// 빈 슬롯 클릭
-			const grid = screen.getByTestId("reservation-grid");
-			const emptySlot = grid.querySelector('[data-empty-slot="true"]');
-			if (emptySlot) {
-				fireEvent.click(emptySlot);
-			}
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 등록")).toBeInTheDocument();
-			});
-
-			// 고객 선택 (CustomerSelect 사용)
-			fireEvent.click(screen.getByText("고객 선택"));
-			await waitFor(() => {
-				expect(screen.getByPlaceholderText("검색...")).toBeInTheDocument();
-			});
-			fireEvent.click(screen.getByText("장원영"));
-
-			// 카테고리 선택 후 시술 선택
-			fireEvent.change(screen.getByLabelText("시술 카테고리 *"), {
-				target: { value: "cat1" },
-			});
-			fireEvent.change(screen.getByLabelText("시술 *"), {
-				target: { value: "남자커트" },
-			});
-
-			// 김정희 담당자 선택, 10:00 시간대 선택 (김민지 예약과 충돌)
-			fireEvent.change(screen.getByLabelText("담당자 *"), {
-				target: { value: "1" },
-			});
-			fireEvent.change(screen.getByLabelText("예약 시간 *"), {
-				target: { value: "10:00" },
-			});
-
-			// 충돌 확인
-			await waitFor(() => {
-				expect(screen.getByText("예약 시간이 충돌합니다")).toBeInTheDocument();
-			});
-
-			// 다른 시간대로 변경하여 충돌 해소 (12:00은 김정희 담당자에게 예약이 없음)
-			fireEvent.change(screen.getByLabelText("예약 시간 *"), {
-				target: { value: "12:00" },
-			});
-
-			// 충돌 경고 메시지가 사라지고 버튼이 활성화됨
-			await waitFor(() => {
-				expect(screen.queryByText("예약 시간이 충돌합니다")).not.toBeInTheDocument();
-				const submitButton = screen.getByRole("button", { name: "등록" });
-				expect(submitButton).not.toBeDisabled();
-			});
-		});
-
-		it("취소된 예약과는 충돌하지 않는다", async () => {
-			render(<ReservationPage />);
-			// Mock 데이터 날짜로 이동 - 한소희(이하늘 담당, 10:30) 예약은 취소됨
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			// 빈 슬롯 클릭
-			const grid = screen.getByTestId("reservation-grid");
-			const emptySlot = grid.querySelector('[data-empty-slot="true"]');
-			if (emptySlot) {
-				fireEvent.click(emptySlot);
-			}
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 등록")).toBeInTheDocument();
-			});
-
-			// 고객 선택 (CustomerSelect 사용)
-			fireEvent.click(screen.getByText("고객 선택"));
-			await waitFor(() => {
-				expect(screen.getByPlaceholderText("검색...")).toBeInTheDocument();
-			});
-			// 장원영은 예약에 없으므로 유일함
-			fireEvent.click(screen.getByText("장원영"));
-
-			// 카테고리 선택 후 시술 선택
-			fireEvent.change(screen.getByLabelText("시술 카테고리 *"), {
-				target: { value: "cat1" },
-			});
-			fireEvent.change(screen.getByLabelText("시술 *"), {
-				target: { value: "남자커트" },
-			});
-
-			// 이하늘 담당자 선택(id=3), 10:30 시간대 (취소된 한소희 예약 시간)
-			fireEvent.change(screen.getByLabelText("담당자 *"), {
-				target: { value: "3" },
-			});
-			fireEvent.change(screen.getByLabelText("예약 시간 *"), {
-				target: { value: "10:30" },
-			});
-
-			// 취소된 예약과는 충돌하지 않으므로 경고 없음
-			await waitFor(() => {
-				expect(screen.queryByText("예약 시간이 충돌합니다")).not.toBeInTheDocument();
-				const submitButton = screen.getByRole("button", { name: "등록" });
-				expect(submitButton).not.toBeDisabled();
-			});
-		});
-	});
-
-	describe("드래그 앤 드롭으로 예약 이동", () => {
-		it("예약 블록은 draggable 속성을 가진다", async () => {
-			render(<ReservationPage />);
-			// Mock 데이터 날짜로 이동
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			// 예약 블록에 draggable 속성 확인
-			const reservationBlock = screen.getByText("김민지").closest("[draggable]");
-			expect(reservationBlock).toHaveAttribute("draggable", "true");
-		});
-
-		it("빈 슬롯은 drop 대상으로 동작한다", async () => {
-			render(<ReservationPage />);
-			// Mock 데이터 날짜로 이동
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			const grid = screen.getByTestId("reservation-grid");
-			const dropZones = grid.querySelectorAll("[data-drop-zone]");
-			expect(dropZones.length).toBeGreaterThan(0);
-		});
-
-		it("예약 블록을 다른 시간대로 드래그하면 시간이 변경된다", async () => {
-			render(<ReservationPage />);
-			// Mock 데이터 날짜로 이동
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			// 김민지 예약 블록 찾기 (10:00 -> 12:00으로 이동 예정)
-			const reservationBlock = screen.getByText("김민지").closest("[draggable]");
-			expect(reservationBlock).not.toBeNull();
-			if (reservationBlock === null) return;
-
-			// 12:00 시간대의 드롭존 찾기 (김정희 담당자)
-			const grid = screen.getByTestId("reservation-grid");
-			const dropZone = grid.querySelector('[data-drop-zone][data-staff-id="1"][data-time="12:00"]');
-			expect(dropZone).not.toBeNull();
-			if (dropZone === null) return;
-
-			// 드래그 시작
-			fireEvent.dragStart(reservationBlock, {
-				dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
-			});
-
-			// 드롭
-			fireEvent.drop(dropZone, {
-				dataTransfer: { getData: () => "res-1" },
-			});
-
-			// 예약 시간이 12:00으로 변경되었는지 확인 (블록 위치 변경)
-			await waitFor(() => {
-				// 예약 블록 클릭하여 상세 모달로 확인
-				fireEvent.click(screen.getByText("김민지"));
-			});
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 상세")).toBeInTheDocument();
-				expect(screen.getByText("12:00")).toBeInTheDocument();
-			});
-		});
-
-		it("예약 블록을 다른 담당자에게 드래그하면 담당자가 변경된다", async () => {
-			render(<ReservationPage />);
-			// Mock 데이터 날짜로 이동
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			// 김민지 예약 블록 (김정희 담당, 10:00)
-			const reservationBlock = screen.getByText("김민지").closest("[draggable]");
-			if (reservationBlock === null) return;
-
-			// 박수민 담당자(id=2)의 18:00 드롭존
-			const grid = screen.getByTestId("reservation-grid");
-			const dropZone = grid.querySelector('[data-drop-zone][data-staff-id="2"][data-time="18:00"]');
-			expect(dropZone).not.toBeNull();
-			if (dropZone === null) return;
-
-			// 드래그 & 드롭
-			fireEvent.dragStart(reservationBlock, {
-				dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
-			});
-			fireEvent.drop(dropZone, {
-				dataTransfer: { getData: () => "res-1" },
-			});
-
-			// 예약 상세에서 담당자 변경 확인
-			await waitFor(() => {
-				fireEvent.click(screen.getByText("김민지"));
-			});
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 상세")).toBeInTheDocument();
-				// 모달에서 담당자 확인 (그리드와 모달에 모두 표시됨)
-				const staffLabels = screen.getAllByText("박수민");
-				expect(staffLabels.length).toBeGreaterThanOrEqual(2); // 그리드 + 모달
-			});
-		});
-
-		it("충돌하는 위치로 드롭하면 이동하지 않는다", async () => {
-			render(<ReservationPage />);
-			// Mock 데이터 날짜로 이동
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			// 박지우 예약 블록 (박수민 담당, 11:00-12:30, 90분)
-			const reservationBlock = screen.getByText("박지우").closest("[draggable]");
-			if (reservationBlock === null) return;
-
-			// 김정희 담당자의 10:00 드롭존 (김민지 예약 10:00-11:00과 충돌)
-			const grid = screen.getByTestId("reservation-grid");
-			const dropZone = grid.querySelector('[data-drop-zone][data-staff-id="1"][data-time="10:00"]');
-			if (dropZone === null) return;
-
-			// 드래그 & 드롭
-			fireEvent.dragStart(reservationBlock, {
-				dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
-			});
-			fireEvent.drop(dropZone, {
-				dataTransfer: { getData: () => "res-3" },
-			});
-
-			// 박지우 예약은 여전히 박수민 담당자
-			await waitFor(() => {
-				fireEvent.click(screen.getByText("박지우"));
-			});
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 상세")).toBeInTheDocument();
-				// 담당자가 변경되지 않음 (그리드 + 모달에 모두 박수민 표시)
-				const staffLabels = screen.getAllByText("박수민");
-				expect(staffLabels.length).toBeGreaterThanOrEqual(2);
-				// 시간도 변경되지 않음 (그리드 시간 헤더 + 모달에 모두 11:00 표시)
-				const timeLabels = screen.getAllByText(/11:00/);
-				expect(timeLabels.length).toBeGreaterThanOrEqual(2);
-			});
-		});
-
-		it("드래그 중 드롭존에 호버하면 시각적 피드백이 표시된다", async () => {
-			render(<ReservationPage />);
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			const grid = screen.getByTestId("reservation-grid");
-			const dropZone = grid.querySelector('[data-drop-zone][data-staff-id="1"][data-time="12:00"]');
-			if (dropZone === null) return;
-
-			// 드래그 오버 시 시각적 피드백
-			fireEvent.dragOver(dropZone, {
-				dataTransfer: { dropEffect: "move" },
-			});
-
-			expect(dropZone).toHaveClass("bg-primary-100");
-		});
-
-		it("취소된 예약은 드래그할 수 없다", async () => {
-			render(<ReservationPage />);
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				// 한소희 예약은 취소 상태
-				expect(screen.getByText("한소희")).toBeInTheDocument();
-			});
-
-			// 취소된 예약 블록은 draggable="false"
-			const cancelledBlock = screen.getByText("한소희").closest("[draggable]");
-			expect(cancelledBlock).toHaveAttribute("draggable", "false");
-		});
-
-		it("드래그 시작 시 모든 예약 블록에 pointer-events: none이 적용된다", async () => {
-			render(<ReservationPage />);
-			// Mock 데이터 날짜로 이동
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				expect(screen.getByText("김민지")).toBeInTheDocument();
-			});
-
-			// 김민지 예약 블록 (드래그할 블록)
-			const draggingBlock = screen.getByText("김민지").closest("[draggable]");
-			// 이서연 예약 블록 (다른 블록)
-			const otherBlock = screen.getByText("이서연").closest("[draggable]");
-			expect(draggingBlock).not.toBeNull();
-			expect(otherBlock).not.toBeNull();
-			if (draggingBlock === null || otherBlock === null) return;
-
-			// 드래그 시작 전에는 모두 pointer-events가 auto
-			expect(draggingBlock).toHaveStyle({ pointerEvents: "auto" });
-			expect(otherBlock).toHaveStyle({ pointerEvents: "auto" });
-
-			// 드래그 시작
-			fireEvent.dragStart(draggingBlock, {
-				dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
-			});
-
-			// 드래그 중에는 모든 블록이 pointer-events: none (드롭 슬롯이 이벤트 받도록)
-			await waitFor(() => {
-				expect(draggingBlock).toHaveStyle({ pointerEvents: "none" });
-				expect(otherBlock).toHaveStyle({ pointerEvents: "none" });
-			});
-
-			// 드래그 종료
-			fireEvent.dragEnd(draggingBlock);
-
-			// 드래그 종료 후 모두 pointer-events가 다시 auto
-			await waitFor(() => {
-				expect(draggingBlock).toHaveStyle({ pointerEvents: "auto" });
-				expect(otherBlock).toHaveStyle({ pointerEvents: "auto" });
-			});
-		});
-
-		it("예약을 자신의 시간대 안으로 이동할 수 있다 (14:00→14:30)", async () => {
-			render(<ReservationPage />);
-			// Mock 데이터 날짜로 이동
-			const dayButton = screen.getByRole("button", { name: "21" });
-			fireEvent.click(dayButton);
-
-			await waitFor(() => {
-				// 이서연 예약 (김정희 담당, 14:00~16:00)
-				expect(screen.getByText("이서연")).toBeInTheDocument();
-			});
-
-			// 이서연 예약 블록 (김정희 담당, 14:00-16:00)
-			const reservationBlock = screen.getByText("이서연").closest("[draggable]");
-			expect(reservationBlock).not.toBeNull();
-			if (reservationBlock === null) return;
-
-			// 드래그 시작
-			fireEvent.dragStart(reservationBlock, {
-				dataTransfer: { setData: vi.fn(), effectAllowed: "move" },
-			});
-
-			// 드래그 중 pointer-events: none이 적용되어 아래 슬롯이 이벤트를 받음
-			// 실제 브라우저에서는 14:30 슬롯에 드롭되지만, 테스트에서는 슬롯에 직접 드롭
-			const grid = screen.getByTestId("reservation-grid");
-			const dropZone = grid.querySelector('[data-drop-zone][data-staff-id="1"][data-time="14:30"]');
-			expect(dropZone).not.toBeNull();
-			if (dropZone === null) return;
-
-			// 슬롯에 드롭 (이서연 예약 블록 아래의 슬롯)
-			fireEvent.drop(dropZone, {
-				dataTransfer: { getData: () => "res-2" },
-			});
-
-			// 예약 상세에서 시간이 14:30으로 변경되었는지 확인
-			await waitFor(() => {
-				fireEvent.click(screen.getByText("이서연"));
-			});
-
-			await waitFor(() => {
-				expect(screen.getByText("예약 상세")).toBeInTheDocument();
-				// 시간이 14:30으로 변경됨
-				expect(screen.getByText("14:30")).toBeInTheDocument();
+				expect(screen.getByText("신규테스트고객")).toBeInTheDocument();
 			});
 		});
 	});

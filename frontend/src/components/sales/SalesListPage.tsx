@@ -1,8 +1,12 @@
-import type { ReactElement } from "react";
-import { useState } from "react";
+import { type ReactElement, useMemo, useState } from "react";
 import { useSales } from "../../contexts/SaleContext";
-import { type PeriodFilter, useSalesTable } from "../../hooks";
+import { getMonthStartDate, getTodayDate } from "../../utils/date";
 import { formatCurrency } from "../../utils/format";
+
+// 정렬 관련 타입
+type SalesSortKey = "date" | "customer" | "staff" | "total" | "status";
+type SortDirection = "asc" | "desc";
+type PeriodFilter = "today" | "week" | "month" | null;
 
 const statusConfig = {
 	completed: {
@@ -17,36 +21,6 @@ const statusConfig = {
 		textColor: "text-orange-700",
 	},
 } as const;
-
-const customerTypeConfig: Record<string, { label: string; bgColor: string; textColor: string }> = {
-	new: {
-		label: "신규",
-		bgColor: "bg-green-100",
-		textColor: "text-green-700",
-	},
-	returning: {
-		label: "재방",
-		bgColor: "bg-blue-100",
-		textColor: "text-blue-700",
-	},
-	substitute: {
-		label: "대체",
-		bgColor: "bg-purple-100",
-		textColor: "text-purple-700",
-	},
-};
-
-const getCustomerTypeStyle = (
-	type: string,
-): { label: string; bgColor: string; textColor: string } => {
-	return (
-		customerTypeConfig[type] ?? {
-			label: type,
-			bgColor: "bg-neutral-100",
-			textColor: "text-neutral-600",
-		}
-	);
-};
 
 // 시술별 색상 설정
 const serviceColorConfig: Record<string, { bg: string; text: string }> = {
@@ -87,28 +61,103 @@ const periodButtons: { key: PeriodFilter; label: string }[] = [
 ];
 
 export default function SalesListPage(): ReactElement {
-	const { sales, voidSale } = useSales();
+	const { sales, voidSale, getSalesByDateRange } = useSales();
+	const [startDate, setStartDate] = useState<string>(getMonthStartDate());
+	const [endDate, setEndDate] = useState<string>(getTodayDate());
 	const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+	const [sortKey, setSortKey] = useState<SalesSortKey>("date");
+	const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+	const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("month");
 
-	const {
-		startDate,
-		endDate,
-		periodFilter,
-		sortedSales,
-		summary,
-		handleSort,
-		handlePeriodFilter,
-		handleStartDateChange,
-		handleEndDateChange,
-		getSortIcon,
-	} = useSalesTable(sales);
+	const filteredSales = getSalesByDateRange(startDate, endDate);
 
+	// 정렬된 거래 목록
+	const sortedSales = useMemo(() => {
+		return [...filteredSales].sort((a, b) => {
+			let comparison = 0;
+			switch (sortKey) {
+				case "date":
+					comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+					break;
+				case "customer":
+					comparison = a.customer.name.localeCompare(b.customer.name, "ko");
+					break;
+				case "staff":
+					comparison = a.staff.name.localeCompare(b.staff.name, "ko");
+					break;
+				case "total":
+					comparison = a.total - b.total;
+					break;
+				case "status":
+					comparison = a.status.localeCompare(b.status);
+					break;
+			}
+			return sortDirection === "asc" ? comparison : -comparison;
+		});
+	}, [filteredSales, sortKey, sortDirection]);
+
+	const handleSort = (key: SalesSortKey): void => {
+		if (sortKey === key) {
+			setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+		} else {
+			setSortKey(key);
+			setSortDirection("asc");
+		}
+	};
+
+	const getSortIcon = (key: SalesSortKey): string => {
+		if (sortKey !== key) return "unfold_more";
+		return sortDirection === "asc" ? "keyboard_arrow_up" : "keyboard_arrow_down";
+	};
 	const selectedSale = selectedSaleId !== null ? sales.find((s) => s.id === selectedSaleId) : null;
+
+	const totalAmount = filteredSales
+		.filter((s) => s.status === "completed")
+		.reduce((sum, s) => sum + s.total, 0);
 
 	const handleVoid = (id: string): void => {
 		if (confirm("이 거래를 취소하시겠습니까?")) {
 			voidSale(id);
 		}
+	};
+
+	const handlePeriodFilter = (period: PeriodFilter): void => {
+		if (period === null) return;
+		setPeriodFilter(period);
+		const today = new Date();
+		const todayStr = today.toISOString().split("T")[0] ?? "";
+
+		switch (period) {
+			case "today":
+				setStartDate(todayStr);
+				setEndDate(todayStr);
+				break;
+			case "week": {
+				const weekStart = new Date(today);
+				weekStart.setDate(today.getDate() - today.getDay());
+				const weekStartStr = weekStart.toISOString().split("T")[0] ?? "";
+				setStartDate(weekStartStr);
+				setEndDate(todayStr);
+				break;
+			}
+			case "month": {
+				const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+				const monthStartStr = monthStart.toISOString().split("T")[0] ?? "";
+				setStartDate(monthStartStr);
+				setEndDate(todayStr);
+				break;
+			}
+		}
+	};
+
+	const handleStartDateChange = (value: string): void => {
+		setStartDate(value);
+		setPeriodFilter(null);
+	};
+
+	const handleEndDateChange = (value: string): void => {
+		setEndDate(value);
+		setPeriodFilter(null);
 	};
 
 	const formatDateTime = (dateString: string): string => {
@@ -183,15 +232,17 @@ export default function SalesListPage(): ReactElement {
 			<div className="mb-6 grid grid-cols-3 gap-4">
 				<div className="rounded-xl border border-neutral-200 bg-white p-4">
 					<p className="text-sm text-neutral-500">거래 건수</p>
-					<p className="text-2xl font-bold text-neutral-800">{summary.transactionCount}건</p>
+					<p className="text-2xl font-bold text-neutral-800">{filteredSales.length}건</p>
 				</div>
 				<div className="rounded-xl border border-neutral-200 bg-white p-4">
 					<p className="text-sm text-neutral-500">총 매출</p>
-					<p className="text-2xl font-bold text-green-600">{formatCurrency(summary.totalAmount)}</p>
+					<p className="text-2xl font-bold text-green-600">{formatCurrency(totalAmount)}</p>
 				</div>
 				<div className="rounded-xl border border-neutral-200 bg-white p-4">
 					<p className="text-sm text-neutral-500">취소 건수</p>
-					<p className="text-2xl font-bold text-red-600">{summary.voidedCount}건</p>
+					<p className="text-2xl font-bold text-red-600">
+						{filteredSales.filter((s) => s.status === "voided").length}건
+					</p>
 				</div>
 			</div>
 
@@ -226,7 +277,6 @@ export default function SalesListPage(): ReactElement {
 									</span>
 								</div>
 							</th>
-							<th className="px-4 py-3 text-center text-sm font-bold text-neutral-600">고객구분</th>
 							<th
 								onClick={() => {
 									handleSort("staff");
@@ -293,18 +343,6 @@ export default function SalesListPage(): ReactElement {
 										<span className="font-medium text-neutral-800">{sale.customer.name}</span>
 									</div>
 								</td>
-								<td className="px-4 py-3 text-center">
-									{(() => {
-										const typeStyle = getCustomerTypeStyle(sale.customer.type);
-										return (
-											<span
-												className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${typeStyle.bgColor} ${typeStyle.textColor}`}
-											>
-												{typeStyle.label}
-											</span>
-										);
-									})()}
-								</td>
 								<td className="px-4 py-3">
 									<div className="flex items-center gap-2">
 										<span
@@ -350,11 +388,9 @@ export default function SalesListPage(): ReactElement {
 												e.stopPropagation();
 												handleVoid(sale.id);
 											}}
-											className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
-											title="거래 취소"
-											aria-label="거래 취소"
+											className="rounded-lg px-3 py-1 text-sm text-red-600 transition-colors hover:bg-red-50"
 										>
-											<span className="material-symbols-outlined text-xl">delete</span>
+											취소
 										</button>
 									)}
 								</td>
@@ -363,7 +399,7 @@ export default function SalesListPage(): ReactElement {
 					</tbody>
 				</table>
 
-				{sortedSales.length === 0 && (
+				{filteredSales.length === 0 && (
 					<div className="py-16 text-center">
 						<span className="material-symbols-outlined mb-4 text-6xl text-neutral-300">
 							receipt_long

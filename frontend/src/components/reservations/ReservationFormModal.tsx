@@ -1,114 +1,67 @@
-import { type ReactElement, useMemo, useState } from "react";
-import { useCatalog } from "../../contexts/CatalogContext";
-import { useCustomers } from "../../contexts/CustomerContext";
-import { useStaff } from "../../contexts/StaffContext";
-import { CustomerSelect } from "../sale/CustomerSelect";
-import { DURATION_OPTIONS, findConflictingReservation, TIME_SLOTS } from "./constants";
+import { type ReactElement, useState } from "react";
+import { DURATION_OPTIONS } from "./constants";
 import type { Reservation, ReservationFormData } from "./types";
 
 interface ReservationFormModalProps {
 	isOpen: boolean;
 	staffId: string;
+	staffName: string;
 	date: string;
 	startTime: string;
 	editingReservation?: Reservation | null;
-	reservations: Reservation[];
 	onClose: () => void;
 	onSubmit: (data: ReservationFormData) => void;
-}
-
-function findCategoryIdByServiceName(
-	serviceCategories: { id: string; items: { name: string }[] }[],
-	serviceName: string,
-): string {
-	const category = serviceCategories.find((cat) =>
-		cat.items.some((item) => item.name === serviceName),
-	);
-	return category?.id ?? "";
 }
 
 export default function ReservationFormModal({
 	isOpen,
 	staffId,
+	staffName,
 	date,
 	startTime,
 	editingReservation,
-	reservations,
 	onClose,
 	onSubmit,
 }: ReservationFormModalProps): ReactElement | null {
-	const { serviceCategories } = useCatalog();
-	const { salesStaff } = useStaff();
-	const { customers, addCustomer } = useCustomers();
-
-	const initialCategoryId = editingReservation
-		? findCategoryIdByServiceName(serviceCategories, editingReservation.serviceName)
-		: "";
-
-	const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
-		editingReservation?.customerId ?? null,
-	);
-	const [formStaffId, setFormStaffId] = useState(editingReservation?.staffId ?? staffId);
-	const [formDate, setFormDate] = useState(editingReservation?.date ?? date);
-	const [formStartTime, setFormStartTime] = useState(editingReservation?.startTime ?? startTime);
-	const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId);
+	// 초기값은 editingReservation에서 가져옴 (key prop으로 리마운트되므로 안전)
+	const [customerName, setCustomerName] = useState(editingReservation?.customerName ?? "");
+	const [isNewCustomer, setIsNewCustomer] = useState(editingReservation?.isNewCustomer ?? false);
 	const [serviceName, setServiceName] = useState(editingReservation?.serviceName ?? "");
 	const [duration, setDuration] = useState(editingReservation?.duration ?? 60);
 	const [memo, setMemo] = useState(editingReservation?.memo ?? "");
 
-	const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
-
-	const conflictingReservation = useMemo(() => {
-		if (!formStaffId || !formDate || !formStartTime) return null;
-		return findConflictingReservation(
-			reservations,
-			formStaffId,
-			formDate,
-			formStartTime,
-			duration,
-			editingReservation?.id,
-		);
-	}, [reservations, formStaffId, formDate, formStartTime, duration, editingReservation?.id]);
-
-	const selectedStaff = salesStaff.find((s) => s.id === formStaffId);
-	const formStaffName = selectedStaff?.name ?? "";
-	const isEditMode = Boolean(editingReservation);
-	const selectedCategory = serviceCategories.find((c) => c.id === selectedCategoryId);
-	const serviceItems = selectedCategory?.items ?? [];
+	const isEditMode = editingReservation !== null && editingReservation !== undefined;
 
 	if (!isOpen) return null;
 
-	const resetForm = (): void => {
-		setSelectedCustomerId(null);
-		setSelectedCategoryId("");
-		setServiceName("");
-		setDuration(60);
-		setMemo("");
-	};
-
 	const handleSubmit = (): void => {
-		if (selectedCustomer === undefined || !serviceName.trim()) return;
+		if (!customerName.trim() || !serviceName.trim()) return;
 
 		const formData: ReservationFormData = {
-			customerId: selectedCustomer.id,
-			customerName: selectedCustomer.name,
-			isNewCustomer: false,
-			staffId: formStaffId,
-			staffName: formStaffName,
+			customerId: `cust-${String(Date.now())}`,
+			customerName: customerName.trim(),
+			isNewCustomer,
+			staffId,
+			staffName,
 			serviceName: serviceName.trim(),
-			date: formDate,
-			startTime: formStartTime,
+			date,
+			startTime,
 			duration,
 		};
 		if (memo.trim()) {
 			formData.memo = memo.trim();
 		}
 		onSubmit(formData);
-		resetForm();
+
+		// 폼 초기화
+		setCustomerName("");
+		setIsNewCustomer(false);
+		setServiceName("");
+		setDuration(60);
+		setMemo("");
 	};
 
-	const isValid =
-		selectedCustomer !== undefined && serviceName.trim() !== "" && conflictingReservation === null;
+	const isValid = customerName.trim() !== "" && serviceName.trim() !== "";
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -128,131 +81,61 @@ export default function ReservationFormModal({
 
 				{/* Form */}
 				<div className="space-y-4 p-6">
-					{/* 고객 + 담당자 */}
-					<div className="grid grid-cols-2 gap-4">
+					{/* 담당자 & 시간 정보 (읽기 전용) */}
+					<div className="grid grid-cols-2 gap-4 rounded-lg bg-neutral-50 p-4">
 						<div>
-							<label className="mb-1 block text-sm font-medium text-neutral-700">고객 *</label>
-							<CustomerSelect
-								customers={customers}
-								selectedCustomer={selectedCustomer}
-								onSelect={setSelectedCustomerId}
-								onClear={() => {
-									setSelectedCustomerId(null);
-								}}
-								onAddCustomer={addCustomer}
-							/>
+							<p className="text-sm text-neutral-500">담당자</p>
+							<p className="font-medium text-neutral-800">{staffName}</p>
 						</div>
 						<div>
-							<label htmlFor="staff" className="mb-1 block text-sm font-medium text-neutral-700">
-								담당자 *
-							</label>
-							<select
-								id="staff"
-								value={formStaffId}
-								onChange={(e) => {
-									setFormStaffId(e.target.value);
-								}}
-								className="focus:border-primary-500 focus:ring-primary-500 w-full rounded-lg border border-neutral-200 px-3 py-2 focus:ring-2 focus:outline-none"
-							>
-								{salesStaff.map((s) => (
-									<option key={s.id} value={s.id}>
-										{s.name}
-									</option>
-								))}
-							</select>
+							<p className="text-sm text-neutral-500">시간</p>
+							<p className="font-medium text-neutral-800">{startTime}</p>
 						</div>
 					</div>
 
-					{/* 예약 날짜 + 예약 시간 */}
-					<div className="grid grid-cols-2 gap-4">
-						<div>
-							<label
-								htmlFor="reservationDate"
-								className="mb-1 block text-sm font-medium text-neutral-700"
-							>
-								예약 날짜 *
-							</label>
+					{/* 고객 */}
+					<div>
+						<label htmlFor="customer" className="mb-1 block text-sm font-medium text-neutral-700">
+							고객 *
+						</label>
+						<input
+							id="customer"
+							type="text"
+							value={customerName}
+							onChange={(e) => {
+								setCustomerName(e.target.value);
+							}}
+							placeholder="고객명을 입력하세요"
+							className="focus:border-primary-500 focus:ring-primary-500 w-full rounded-lg border border-neutral-200 px-4 py-2.5 focus:ring-2 focus:outline-none"
+						/>
+						<label className="mt-2 flex items-center gap-2">
 							<input
-								id="reservationDate"
-								type="date"
-								value={formDate}
+								type="checkbox"
+								checked={isNewCustomer}
 								onChange={(e) => {
-									setFormDate(e.target.value);
+									setIsNewCustomer(e.target.checked);
 								}}
-								className="focus:border-primary-500 focus:ring-primary-500 w-full rounded-lg border border-neutral-200 px-3 py-2 focus:ring-2 focus:outline-none"
+								className="text-primary-500 focus:ring-primary-500 h-4 w-4 rounded border-neutral-300"
 							/>
-						</div>
-						<div>
-							<label
-								htmlFor="reservationTime"
-								className="mb-1 block text-sm font-medium text-neutral-700"
-							>
-								예약 시간 *
-							</label>
-							<select
-								id="reservationTime"
-								value={formStartTime}
-								onChange={(e) => {
-									setFormStartTime(e.target.value);
-								}}
-								className="focus:border-primary-500 focus:ring-primary-500 w-full rounded-lg border border-neutral-200 px-3 py-2 focus:ring-2 focus:outline-none"
-							>
-								{TIME_SLOTS.map((slot) => (
-									<option key={slot.time} value={slot.time}>
-										{slot.label}
-									</option>
-								))}
-							</select>
-						</div>
+							<span className="text-sm text-neutral-600">신규 고객</span>
+						</label>
 					</div>
 
-					{/* 시술 카테고리 + 시술 */}
-					<div className="grid grid-cols-2 gap-4">
-						<div>
-							<label
-								htmlFor="serviceCategory"
-								className="mb-1 block text-sm font-medium text-neutral-700"
-							>
-								시술 카테고리 *
-							</label>
-							<select
-								id="serviceCategory"
-								value={selectedCategoryId}
-								onChange={(e) => {
-									setSelectedCategoryId(e.target.value);
-									setServiceName("");
-								}}
-								className="focus:border-primary-500 focus:ring-primary-500 w-full rounded-lg border border-neutral-200 px-3 py-2 focus:ring-2 focus:outline-none"
-							>
-								<option value="">카테고리 선택</option>
-								{serviceCategories.map((category) => (
-									<option key={category.id} value={category.id}>
-										{category.name}
-									</option>
-								))}
-							</select>
-						</div>
-						<div>
-							<label htmlFor="service" className="mb-1 block text-sm font-medium text-neutral-700">
-								시술 *
-							</label>
-							<select
-								id="service"
-								value={serviceName}
-								onChange={(e) => {
-									setServiceName(e.target.value);
-								}}
-								disabled={!selectedCategoryId}
-								className="focus:border-primary-500 focus:ring-primary-500 w-full rounded-lg border border-neutral-200 px-3 py-2 focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-neutral-100"
-							>
-								<option value="">시술 선택</option>
-								{serviceItems.map((item) => (
-									<option key={item.id} value={item.name}>
-										{item.name}
-									</option>
-								))}
-							</select>
-						</div>
+					{/* 시술명 */}
+					<div>
+						<label htmlFor="service" className="mb-1 block text-sm font-medium text-neutral-700">
+							시술명 *
+						</label>
+						<input
+							id="service"
+							type="text"
+							value={serviceName}
+							onChange={(e) => {
+								setServiceName(e.target.value);
+							}}
+							placeholder="시술명을 입력하세요"
+							className="focus:border-primary-500 focus:ring-primary-500 w-full rounded-lg border border-neutral-200 px-4 py-2.5 focus:ring-2 focus:outline-none"
+						/>
 					</div>
 
 					{/* 소요시간 */}
@@ -266,7 +149,7 @@ export default function ReservationFormModal({
 							onChange={(e) => {
 								setDuration(Number(e.target.value));
 							}}
-							className="focus:border-primary-500 focus:ring-primary-500 w-full rounded-lg border border-neutral-200 px-3 py-2 focus:ring-2 focus:outline-none"
+							className="focus:border-primary-500 focus:ring-primary-500 w-full rounded-lg border border-neutral-200 px-4 py-2.5 focus:ring-2 focus:outline-none"
 						>
 							{DURATION_OPTIONS.map((option) => (
 								<option key={option.value} value={option.value}>
@@ -288,27 +171,10 @@ export default function ReservationFormModal({
 								setMemo(e.target.value);
 							}}
 							placeholder="메모를 입력하세요 (선택)"
-							rows={2}
-							className="focus:border-primary-500 focus:ring-primary-500 w-full resize-none rounded-lg border border-neutral-200 px-3 py-2 focus:ring-2 focus:outline-none"
+							rows={3}
+							className="focus:border-primary-500 focus:ring-primary-500 w-full resize-none rounded-lg border border-neutral-200 px-4 py-2.5 focus:ring-2 focus:outline-none"
 						/>
 					</div>
-
-					{/* 충돌 경고 메시지 */}
-					{conflictingReservation !== null && (
-						<div
-							className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3"
-							role="alert"
-						>
-							<span className="material-symbols-outlined text-red-500">warning</span>
-							<div className="text-sm text-red-700">
-								<p className="font-medium">예약 시간이 충돌합니다</p>
-								<p className="mt-1">
-									{conflictingReservation.customerName}님의 예약 ({conflictingReservation.startTime}
-									, {conflictingReservation.serviceName})과 시간이 겹칩니다.
-								</p>
-							</div>
-						</div>
-					)}
 				</div>
 
 				{/* Footer */}
@@ -322,7 +188,7 @@ export default function ReservationFormModal({
 					<button
 						onClick={handleSubmit}
 						disabled={!isValid}
-						className="bg-primary-500 hover:bg-primary-600 rounded-xl px-5 py-2.5 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+						className="bg-primary-500 hover:bg-primary-600 rounded-xl px-5 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 					>
 						{isEditMode ? "저장" : "등록"}
 					</button>

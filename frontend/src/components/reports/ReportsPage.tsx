@@ -1,6 +1,6 @@
-import type { ReactElement } from "react";
+import { type ReactElement, useMemo, useState } from "react";
 import { useSales } from "../../contexts/SaleContext";
-import { useDailyReport, useMethodReport, useReportData, useStaffReport } from "../../hooks";
+import { useDailyReport, useMethodReport, useStaffReport } from "../../hooks/useReportsApi";
 import { USE_API } from "../../lib/config";
 import { getTodayDate } from "../../utils/date";
 import { formatCurrency } from "../../utils/format";
@@ -9,17 +9,38 @@ type PeriodFilter = "today" | "week" | "month";
 
 export default function ReportsPage(): ReactElement {
 	const { sales } = useSales();
+	const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("month");
 
-	// 리포트 데이터 훅
-	const {
-		periodFilter,
-		setPeriodFilter,
-		summary,
-		staffSales,
-		paymentMethodSales,
-		topServices,
-		customerTypes,
-	} = useReportData(sales);
+	// 기간에 따른 날짜 범위 계산
+	const dateRange = useMemo(() => {
+		const today = new Date();
+		const endDateStr = today.toISOString().split("T")[0];
+		const endDate = endDateStr ?? "";
+		let startDate: string;
+
+		switch (periodFilter) {
+			case "today":
+				startDate = endDate;
+				break;
+			case "week": {
+				const weekAgo = new Date(today);
+				weekAgo.setDate(today.getDate() - 7);
+				const weekAgoStr = weekAgo.toISOString().split("T")[0];
+				startDate = weekAgoStr ?? "";
+				break;
+			}
+			case "month":
+			default: {
+				const monthAgo = new Date(today);
+				monthAgo.setMonth(today.getMonth() - 1);
+				const monthAgoStr = monthAgo.toISOString().split("T")[0];
+				startDate = monthAgoStr ?? "";
+				break;
+			}
+		}
+
+		return { startDate, endDate };
+	}, [periodFilter]);
 
 	// API 훅 사용 (오늘 날짜 기준)
 	const todayDate = getTodayDate();
@@ -30,36 +51,152 @@ export default function ReportsPage(): ReactElement {
 	// API 로딩 상태
 	const isApiLoading = USE_API && dailyLoading;
 
-	// API 데이터 사용 (오늘 필터 + API 모드일 때만)
-	const displaySummary =
-		USE_API && periodFilter === "today" && apiDailyReport !== undefined
-			? {
-					totalAmount: apiDailyReport.total_sales,
-					transactionCount: apiDailyReport.visit_count,
-					avgPerTransaction:
-						apiDailyReport.visit_count > 0
-							? Math.round(apiDailyReport.total_sales / apiDailyReport.visit_count)
-							: 0,
+	// 기간 내 거래 필터링
+	const filteredSales = useMemo(() => {
+		return sales.filter(
+			(sale) =>
+				sale.saleDate >= dateRange.startDate &&
+				sale.saleDate <= dateRange.endDate &&
+				sale.status === "completed",
+		);
+	}, [sales, dateRange]);
+
+	// 매출 요약 계산
+	const summary = useMemo(() => {
+		// API 사용 시 API 데이터 반환 (오늘 기간일 때만)
+		if (USE_API && periodFilter === "today" && apiDailyReport !== undefined) {
+			return {
+				totalAmount: apiDailyReport.total_sales,
+				transactionCount: apiDailyReport.visit_count,
+				avgPerTransaction:
+					apiDailyReport.visit_count > 0
+						? Math.round(apiDailyReport.total_sales / apiDailyReport.visit_count)
+						: 0,
+			};
+		}
+
+		// Context 데이터 사용
+		const totalAmount = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
+		const transactionCount = filteredSales.length;
+		const avgPerTransaction = transactionCount > 0 ? Math.round(totalAmount / transactionCount) : 0;
+
+		return {
+			totalAmount,
+			transactionCount,
+			avgPerTransaction,
+		};
+	}, [filteredSales, periodFilter, apiDailyReport]);
+
+	// 담당자별 매출
+	const staffSales = useMemo(() => {
+		// API 사용 시 API 데이터 반환 (오늘 기간일 때만)
+		if (USE_API && periodFilter === "today" && apiStaffReport !== undefined) {
+			return apiStaffReport.staff_sales.map((staff) => ({
+				name: staff.staff_name,
+				color: "#6b7280", // 기본 색상 (API에서 색상 미제공)
+				amount: staff.total_sales,
+				count: staff.item_count,
+			}));
+		}
+
+		// Context 데이터 사용
+		const staffMap = new Map<
+			string,
+			{ name: string; color: string; amount: number; count: number }
+		>();
+
+		for (const sale of filteredSales) {
+			const existing = staffMap.get(sale.staff.id);
+			if (existing) {
+				existing.amount += sale.total;
+				existing.count += 1;
+			} else {
+				staffMap.set(sale.staff.id, {
+					name: sale.staff.name,
+					color: sale.staff.color,
+					amount: sale.total,
+					count: 1,
+				});
+			}
+		}
+
+		return Array.from(staffMap.values()).sort((a, b) => b.amount - a.amount);
+	}, [filteredSales, periodFilter, apiStaffReport]);
+
+	// 결제수단별 매출
+	const paymentMethodSales = useMemo(() => {
+		// API 사용 시 API 데이터 반환 (오늘 기간일 때만)
+		if (USE_API && periodFilter === "today" && apiMethodReport !== undefined) {
+			return apiMethodReport.method_sales.map((method) => ({
+				method: method.method_label,
+				amount: method.total_amount,
+			}));
+		}
+
+		// Context 데이터 사용
+		const paymentMap = new Map<string, number>();
+
+		for (const sale of filteredSales) {
+			for (const payment of sale.payments) {
+				const existing = paymentMap.get(payment.method) ?? 0;
+				paymentMap.set(payment.method, existing + payment.amount);
+			}
+		}
+
+		return Array.from(paymentMap.entries())
+			.map(([method, amount]) => ({ method, amount }))
+			.sort((a, b) => b.amount - a.amount);
+	}, [filteredSales, periodFilter, apiMethodReport]);
+
+	// 인기 시술 TOP 5
+	const topServices = useMemo(() => {
+		const serviceMap = new Map<string, { count: number; amount: number }>();
+
+		for (const sale of filteredSales) {
+			for (const item of sale.items) {
+				if (item.type === "service") {
+					const existing = serviceMap.get(item.name);
+					if (existing) {
+						existing.count += item.quantity;
+						existing.amount += item.lineTotal;
+					} else {
+						serviceMap.set(item.name, {
+							count: item.quantity,
+							amount: item.lineTotal,
+						});
+					}
 				}
-			: summary;
+			}
+		}
 
-	const displayStaffSales =
-		USE_API && periodFilter === "today" && apiStaffReport !== undefined
-			? apiStaffReport.staff_sales.map((staff) => ({
-					name: staff.staff_name,
-					color: "#6b7280",
-					amount: staff.total_sales,
-					count: staff.item_count,
-				}))
-			: staffSales;
+		return Array.from(serviceMap.entries())
+			.map(([name, data]) => ({ name, ...data }))
+			.sort((a, b) => b.count - a.count)
+			.slice(0, 5);
+	}, [filteredSales]);
 
-	const displayPaymentMethodSales =
-		USE_API && periodFilter === "today" && apiMethodReport !== undefined
-			? apiMethodReport.method_sales.map((method) => ({
-					method: method.method_label,
-					amount: method.total_amount,
-				}))
-			: paymentMethodSales;
+	// 고객 유형 분석 (신규/재방문)
+	const customerTypes = useMemo(() => {
+		let newCount = 0;
+		let returningCount = 0;
+
+		for (const sale of filteredSales) {
+			if (sale.customer.type === "new") {
+				newCount += 1;
+			} else {
+				returningCount += 1;
+			}
+		}
+
+		const total = newCount + returningCount;
+
+		return {
+			newCount,
+			returningCount,
+			newPercent: total > 0 ? Math.round((newCount / total) * 100) : 0,
+			returningPercent: total > 0 ? Math.round((returningCount / total) * 100) : 0,
+		};
+	}, [filteredSales]);
 
 	const periodButtons: { key: PeriodFilter; label: string }[] = [
 		{ key: "today", label: "오늘" },
@@ -106,7 +243,7 @@ export default function ReportsPage(): ReactElement {
 						<div>
 							<p className="text-sm text-neutral-500">총 매출</p>
 							<p className="text-2xl font-bold text-neutral-800">
-								{formatCurrency(displaySummary.totalAmount)}
+								{formatCurrency(summary.totalAmount)}
 							</p>
 						</div>
 					</div>
@@ -118,9 +255,7 @@ export default function ReportsPage(): ReactElement {
 						</div>
 						<div>
 							<p className="text-sm text-neutral-500">거래 건수</p>
-							<p className="text-2xl font-bold text-neutral-800">
-								{displaySummary.transactionCount}건
-							</p>
+							<p className="text-2xl font-bold text-neutral-800">{summary.transactionCount}건</p>
 						</div>
 					</div>
 				</div>
@@ -132,7 +267,7 @@ export default function ReportsPage(): ReactElement {
 						<div>
 							<p className="text-sm text-neutral-500">평균 객단가</p>
 							<p className="text-2xl font-bold text-neutral-800">
-								{formatCurrency(displaySummary.avgPerTransaction)}
+								{formatCurrency(summary.avgPerTransaction)}
 							</p>
 						</div>
 					</div>
@@ -145,8 +280,8 @@ export default function ReportsPage(): ReactElement {
 				<div className="rounded-xl border border-neutral-200 bg-white p-6">
 					<h2 className="mb-4 text-lg font-bold text-neutral-800">담당자별 매출</h2>
 					<div className="space-y-3">
-						{displayStaffSales.length > 0 ? (
-							displayStaffSales.map((staff) => (
+						{staffSales.length > 0 ? (
+							staffSales.map((staff) => (
 								<div key={staff.name} className="flex items-center gap-3">
 									<div
 										className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
@@ -166,7 +301,7 @@ export default function ReportsPage(): ReactElement {
 												className="h-full rounded-full"
 												style={{
 													backgroundColor: staff.color,
-													width: `${String((staff.amount / (displayStaffSales[0]?.amount ?? 1)) * 100)}%`,
+													width: `${String((staff.amount / (staffSales[0]?.amount ?? 1)) * 100)}%`,
 												}}
 											/>
 										</div>
@@ -183,8 +318,8 @@ export default function ReportsPage(): ReactElement {
 				<div className="rounded-xl border border-neutral-200 bg-white p-6">
 					<h2 className="mb-4 text-lg font-bold text-neutral-800">결제수단별 매출</h2>
 					<div className="space-y-3">
-						{displayPaymentMethodSales.length > 0 ? (
-							displayPaymentMethodSales.map((payment) => (
+						{paymentMethodSales.length > 0 ? (
+							paymentMethodSales.map((payment) => (
 								<div key={payment.method} className="flex items-center justify-between">
 									<span className="text-neutral-600">{payment.method}</span>
 									<span className="font-bold text-neutral-800">

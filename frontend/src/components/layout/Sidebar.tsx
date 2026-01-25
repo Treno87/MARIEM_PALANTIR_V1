@@ -31,7 +31,6 @@ const mainNavItems: NavItem[] = [
 
 const managementNavItems: NavItem[] = [
 	{ icon: "group", label: "고객 관리", path: "/customers" },
-	{ icon: "campaign", label: "마케팅 관리", path: "/marketing" },
 	{ icon: "badge", label: "직원 관리", path: "/staff" },
 ];
 

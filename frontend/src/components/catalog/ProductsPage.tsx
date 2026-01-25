@@ -224,7 +224,7 @@ export default function ProductsPage(): React.ReactElement {
 								>
 									<div className="flex items-center gap-3">
 										<span className="h-3 w-3 rounded-full" style={{ backgroundColor: cat.color }} />
-										<span className="font-medium">{cat.name}</span>
+										<span className="text-sm font-medium">{cat.name}</span>
 									</div>
 									<div className="flex gap-1">
 										<span
@@ -234,7 +234,7 @@ export default function ProductsPage(): React.ReactElement {
 											}}
 											className="hover:text-primary-500 cursor-pointer p-1 text-neutral-400"
 										>
-											<span className="material-symbols-outlined text-lg">edit</span>
+											<span className="material-symbols-outlined text-sm">edit</span>
 										</span>
 										<span
 											onClick={(e) => {
@@ -243,7 +243,7 @@ export default function ProductsPage(): React.ReactElement {
 											}}
 											className="cursor-pointer p-1 text-neutral-400 hover:text-red-500"
 										>
-											<span className="material-symbols-outlined text-lg">delete</span>
+											<span className="material-symbols-outlined text-sm">delete</span>
 										</span>
 									</div>
 								</button>
@@ -281,8 +281,8 @@ export default function ProductsPage(): React.ReactElement {
 									}`}
 								>
 									<div className="flex items-center gap-2">
-										<span className="font-medium">{brand.name}</span>
-										<span className="text-sm text-neutral-400">({brand.items.length})</span>
+										<span className="text-sm font-medium">{brand.name}</span>
+										<span className="text-xs text-neutral-400">({brand.items.length})</span>
 									</div>
 									<div className="flex gap-1">
 										<span
@@ -292,7 +292,7 @@ export default function ProductsPage(): React.ReactElement {
 											}}
 											className="hover:text-primary-500 cursor-pointer p-1 text-neutral-400"
 										>
-											<span className="material-symbols-outlined text-lg">edit</span>
+											<span className="material-symbols-outlined text-sm">edit</span>
 										</span>
 										<span
 											onClick={(e) => {
@@ -301,7 +301,7 @@ export default function ProductsPage(): React.ReactElement {
 											}}
 											className="cursor-pointer p-1 text-neutral-400 hover:text-red-500"
 										>
-											<span className="material-symbols-outlined text-lg">delete</span>
+											<span className="material-symbols-outlined text-sm">delete</span>
 										</span>
 									</div>
 								</button>
@@ -324,7 +324,7 @@ export default function ProductsPage(): React.ReactElement {
 							{currentBrand && (
 								<button
 									onClick={openAddProductModal}
-									className="bg-primary-500 hover:bg-primary-600 flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+									className="bg-primary-500 hover:bg-primary-600 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-white transition-colors"
 								>
 									<span className="material-symbols-outlined text-lg">add</span>
 									상품 추가
@@ -432,7 +432,7 @@ export default function ProductsPage(): React.ReactElement {
 							<button
 								onClick={handleCategorySubmit}
 								disabled={!categoryForm.name.trim()}
-								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 							>
 								{editingCategory ? "수정" : "추가"}
 							</button>
@@ -476,7 +476,7 @@ export default function ProductsPage(): React.ReactElement {
 							<button
 								onClick={handleBrandSubmit}
 								disabled={!brandForm.name.trim()}
-								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 							>
 								{editingBrand ? "수정" : "추가"}
 							</button>
@@ -538,7 +538,7 @@ export default function ProductsPage(): React.ReactElement {
 							<button
 								onClick={handleProductSubmit}
 								disabled={!productForm.name.trim() || !productForm.price}
-								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+								className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 							>
 								{editingProduct ? "수정" : "추가"}
 							</button>

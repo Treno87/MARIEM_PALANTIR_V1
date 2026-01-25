@@ -1,7 +1,6 @@
 import { type ReactElement, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useStaff } from "../../contexts/StaffContext";
-import { isTimeConflict, MOCK_RESERVATIONS, STATUS_CONFIG } from "./constants";
+import { MOCK_RESERVATIONS, STATUS_CONFIG } from "./constants";
 import ReservationCalendar from "./ReservationCalendar";
 import ReservationDetailModal from "./ReservationDetailModal";
 import ReservationFormModal from "./ReservationFormModal";
@@ -26,7 +25,6 @@ function formatDateString(date: Date): string {
 }
 
 export default function ReservationPage(): ReactElement {
-	const navigate = useNavigate();
 	const { salesStaff } = useStaff();
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [reservations, setReservations] = useState<Reservation[]>(MOCK_RESERVATIONS);
@@ -38,6 +36,7 @@ export default function ReservationPage(): ReactElement {
 	const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
 	const [formContext, setFormContext] = useState({
 		staffId: "",
+		staffName: "",
 		startTime: "",
 	});
 
@@ -73,21 +72,10 @@ export default function ReservationPage(): ReactElement {
 		setSelectedDate(new Date());
 	};
 
-	// 예약추가 버튼 클릭 -> 기본값으로 예약 등록 모달
-	const handleAddReservation = (): void => {
-		const firstStaff = salesStaff[0];
-		setEditingReservation(null);
-		setFormContext({
-			staffId: firstStaff?.id ?? "",
-			startTime: "10:00",
-		});
-		setIsFormModalOpen(true);
-	};
-
 	// 빈 슬롯 클릭 -> 예약 등록 모달
-	const handleSlotClick = (staffId: string, _staffName: string, time: string): void => {
+	const handleSlotClick = (staffId: string, staffName: string, time: string): void => {
 		setEditingReservation(null);
-		setFormContext({ staffId, startTime: time });
+		setFormContext({ staffId, staffName, startTime: time });
 		setIsFormModalOpen(true);
 	};
 
@@ -102,35 +90,27 @@ export default function ReservationPage(): ReactElement {
 		setEditingReservation(reservation);
 		setFormContext({
 			staffId: reservation.staffId,
+			staffName: reservation.staffName,
 			startTime: reservation.startTime,
 		});
 		setIsFormModalOpen(true);
 	};
 
-	// 예약 등록
-	const handleCreateReservation = (data: ReservationFormData): void => {
-		const newReservation: Reservation = {
-			id: `res-${String(Date.now())}`,
-			...data,
-			status: "reserved",
-		};
-		setReservations((prev) => [...prev, newReservation]);
-	};
-
-	// 예약 수정
-	const handleUpdateReservation = (data: ReservationFormData): void => {
-		if (!editingReservation) return;
-		setReservations((prev) =>
-			prev.map((r) => (r.id === editingReservation.id ? { ...r, ...data, status: r.status } : r)),
-		);
-	};
-
-	// 예약 폼 제출
+	// 예약 등록/수정
 	const handleFormSubmit = (data: ReservationFormData): void => {
-		if (editingReservation) {
-			handleUpdateReservation(data);
+		if (editingReservation !== null) {
+			// 수정 모드
+			setReservations((prev) =>
+				prev.map((r) => (r.id === editingReservation.id ? { ...r, ...data, status: r.status } : r)),
+			);
 		} else {
-			handleCreateReservation(data);
+			// 등록 모드
+			const newReservation: Reservation = {
+				id: `res-${String(Date.now())}`,
+				...data,
+				status: "reserved",
+			};
+			setReservations((prev) => [...prev, newReservation]);
 		}
 		setIsFormModalOpen(false);
 		setEditingReservation(null);
@@ -141,69 +121,12 @@ export default function ReservationPage(): ReactElement {
 		setReservations((prev) => prev.map((r) => (r.id === id ? { ...r, status: "cancelled" } : r)));
 	};
 
-	// 거래입력 페이지로 이동
-	const handleSaleReservation = (reservation: Reservation): void => {
-		void navigate("/sale", {
-			state: {
-				customerId: reservation.customerId,
-				customerName: reservation.customerName,
-				staffId: reservation.staffId,
-				staffName: reservation.staffName,
-				serviceName: reservation.serviceName,
-			},
-		});
-	};
-
-	// 드래그 앤 드롭으로 예약 이동
-	const handleReservationDrop = (
-		reservationId: string,
-		target: { staffId: string; staffName: string; time: string },
-	): void => {
-		const reservation = reservations.find((r) => r.id === reservationId);
-		if (!reservation) return;
-
-		// 취소된 예약은 이동 불가
-		if (reservation.status === "cancelled") return;
-
-		// 충돌 검사
-		const hasConflict = reservations.some(
-			(r) =>
-				r.id !== reservationId &&
-				r.staffId === target.staffId &&
-				r.date === reservation.date &&
-				r.status !== "cancelled" &&
-				isTimeConflict(target.time, reservation.duration, r.startTime, r.duration),
-		);
-
-		if (hasConflict) return;
-
-		// 예약 업데이트
-		setReservations((prev) =>
-			prev.map((r) =>
-				r.id === reservationId
-					? {
-							...r,
-							staffId: target.staffId,
-							staffName: target.staffName,
-							startTime: target.time,
-						}
-					: r,
-			),
-		);
-	};
-
 	return (
 		<div className="flex h-full flex-col bg-neutral-50 p-6">
 			{/* Header */}
 			<div className="mb-6 flex items-center justify-between">
 				<h1 className="text-2xl font-bold text-neutral-800">예약관리</h1>
 				<div className="flex items-center gap-4">
-					<button
-						onClick={handleToday}
-						className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
-					>
-						오늘
-					</button>
 					<button
 						onClick={handlePrevDay}
 						aria-label="이전 날짜"
@@ -222,11 +145,10 @@ export default function ReservationPage(): ReactElement {
 						<span className="material-symbols-outlined">chevron_right</span>
 					</button>
 					<button
-						onClick={handleAddReservation}
-						className="bg-primary-500 hover:bg-primary-600 flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+						onClick={handleToday}
+						className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
 					>
-						<span className="material-symbols-outlined text-lg">add</span>
-						예약추가
+						오늘
 					</button>
 				</div>
 			</div>
@@ -266,18 +188,17 @@ export default function ReservationPage(): ReactElement {
 				reservations={filteredReservations}
 				onSlotClick={handleSlotClick}
 				onReservationClick={handleReservationClick}
-				onReservationDrop={handleReservationDrop}
 			/>
 
-			{/* 예약 등록/수정 모달 - 날짜 변경 시 재마운트하여 formDate 초기값 갱신 */}
+			{/* 예약 등록/수정 모달 */}
 			<ReservationFormModal
-				key={`modal-${editingReservation?.id ?? "new"}-${dateString}`}
+				key={editingReservation?.id ?? "new"}
 				isOpen={isFormModalOpen}
 				staffId={formContext.staffId}
+				staffName={formContext.staffName}
 				date={editingReservation?.date ?? dateString}
 				startTime={formContext.startTime}
 				editingReservation={editingReservation}
-				reservations={reservations}
 				onClose={() => {
 					setIsFormModalOpen(false);
 					setEditingReservation(null);
@@ -295,7 +216,6 @@ export default function ReservationPage(): ReactElement {
 				}}
 				onEdit={handleEditReservation}
 				onCancel={handleCancelReservation}
-				onSale={handleSaleReservation}
 			/>
 		</div>
 	);

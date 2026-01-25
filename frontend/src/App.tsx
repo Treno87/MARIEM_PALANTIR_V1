@@ -7,7 +7,6 @@ import ServicesPage from "./components/catalog/ServicesPage";
 import CustomersPage from "./components/customers/CustomersPage";
 import LandingPage from "./components/landing/LandingPage";
 import AppLayout from "./components/layout/AppLayout";
-import MarketingPage from "./components/marketing/MarketingPage";
 import ReportsPage from "./components/reports/ReportsPage";
 import ReservationPage from "./components/reservations/ReservationPage";
 import SalePage from "./components/sale/SalePage";
@@ -43,7 +42,6 @@ function App(): React.ReactElement {
 											<Route path="/reservations" element={<ReservationPage />} />
 											<Route path="/reports" element={<ReportsPage />} />
 											<Route path="/customers" element={<CustomersPage />} />
-											<Route path="/marketing" element={<MarketingPage />} />
 											<Route path="/settings" element={<PlaceholderPage title="설정" />} />
 										</Route>
 									</Routes>

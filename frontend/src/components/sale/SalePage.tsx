@@ -1,19 +1,16 @@
 import type { ReactElement } from "react";
 import { useCallback, useState } from "react";
-import { useLocation } from "react-router-dom";
 import { useCatalog } from "../../contexts/CatalogContext";
 import type { Customer } from "../../contexts/CustomerContext";
 import { useCustomers } from "../../contexts/CustomerContext";
 import { useSales } from "../../contexts/SaleContext";
 import { useStaff } from "../../contexts/StaffContext";
-import { useCart } from "../../hooks/useCart";
-import { useCustomerBalance } from "../../hooks/useCustomerBalance";
 import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { CategoryModal } from "../catalog/CategoryModal";
 import { ProductBrandModal } from "../catalog/ProductBrandModal";
 import { ProductItemModal } from "../catalog/ProductItemModal";
 import { ServiceItemModal } from "../catalog/ServiceItemModal";
-import StaffFormModal from "../staff/StaffFormModal";
+import { StaffFormModal } from "../staff/StaffFormModal";
 import { CartTable } from "./CartTable";
 import type { CatalogModalContext, CatalogModalType } from "./CatalogTabs";
 import { CatalogTabs } from "./CatalogTabs";
@@ -22,22 +19,11 @@ import { PAYMENT_METHOD_LABELS } from "./constants";
 import { PaymentSummary } from "./PaymentSummary";
 import { SaleFooter } from "./SaleFooter";
 import { StaffSelect } from "./StaffSelect";
-import type { CartItem } from "./types";
+import type { CartItem, ItemPaymentMethod } from "./types";
 
 type ModalType = "staff" | CatalogModalType | null;
 
-interface ReservationState {
-	customerId?: string;
-	customerName?: string;
-	staffId?: string;
-	staffName?: string;
-	serviceName?: string;
-}
-
 export default function SalePage(): ReactElement {
-	const location = useLocation();
-	const reservationState = location.state as ReservationState | null;
-
 	const { salesStaff } = useStaff();
 	const {
 		serviceCategories,
@@ -48,66 +34,9 @@ export default function SalePage(): ReactElement {
 	} = useCatalog();
 	const { customers, addCustomer, updateCustomer } = useCustomers();
 	const { addSale } = useSales();
-
-	// 예약에서 넘어온 경우 초기 카트 계산
-	const getInitialCart = (): CartItem[] => {
-		if (reservationState?.serviceName !== undefined && reservationState.serviceName !== "") {
-			for (const category of serviceCategories) {
-				const serviceItem = category.items.find(
-					(item) => item.name === reservationState.serviceName,
-				);
-				if (serviceItem !== undefined) {
-					return [
-						{
-							id: serviceItem.id,
-							name: serviceItem.name,
-							price: serviceItem.price,
-							quantity: 1,
-							type: "service" as const,
-							paymentMethod: "card" as const,
-							discountAmount: 0,
-							finalPrice: serviceItem.price,
-						},
-					];
-				}
-			}
-		}
-		return [];
-	};
-
-	// 커스텀 훅 사용
-	const {
-		cart,
-		subtotal,
-		totalDiscount,
-		total,
-		topupTotal,
-		addToCart,
-		updateQuantity,
-		removeFromCart,
-		updatePaymentMethod,
-		updateEvent,
-		clearCart,
-	} = useCart(getInitialCart(), discountEvents);
-
-	// 예약에서 넘어온 경우 초기값 설정 (lazy initialization)
-	const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(() => {
-		if (reservationState?.customerId !== undefined && reservationState.customerId !== "") {
-			const existingCustomer = customers.find((c) => c.id === reservationState.customerId);
-			return existingCustomer?.id ?? null;
-		}
-		return null;
-	});
-
-	const [selectedDesignerId, setSelectedDesignerId] = useState<string>(() => {
-		if (reservationState?.staffId !== undefined && reservationState.staffId !== "") {
-			const staffExists = salesStaff.some((s) => s.id === reservationState.staffId);
-			if (staffExists) {
-				return reservationState.staffId;
-			}
-		}
-		return "1";
-	});
+	const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+	const [selectedDesignerId, setSelectedDesignerId] = useState<string>("1");
+	const [cart, setCart] = useState<CartItem[]>([]);
 
 	// 모달 상태
 	const [activeModal, setActiveModal] = useState<ModalType>(null);
@@ -122,13 +51,99 @@ export default function SalePage(): ReactElement {
 
 	const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
 
-	// 고객 잔액 계산 훅 사용
-	const {
-		usedStoredValue,
-		usedMembershipCount,
-		displayedStoredValue,
-		displayedMembershipRemaining,
-	} = useCustomerBalance(selectedCustomer, cart);
+	// 정액권/정기권 사용량 계산 (cart 항목 기준)
+	const usedStoredValue = cart
+		.filter((item) => item.paymentMethod === "stored_value")
+		.reduce((sum, item) => sum + item.finalPrice, 0);
+	const usedMembershipCount = cart.filter((item) => item.paymentMethod === "membership").length;
+
+	// 고객의 현재 잔액 - 사용량
+	const displayedStoredValue =
+		selectedCustomer?.storedValue !== undefined && selectedCustomer.storedValue > 0
+			? selectedCustomer.storedValue - usedStoredValue
+			: 0;
+
+	const displayedMembershipRemaining = selectedCustomer?.membership
+		? selectedCustomer.membership.total - selectedCustomer.membership.used - usedMembershipCount
+		: 0;
+
+	// 합계 계산 (topup 제외)
+	const payableItems = cart.filter((item) => item.type !== "topup");
+	const subtotal = payableItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+	const totalDiscount = payableItems.reduce((sum, item) => sum + item.discountAmount, 0);
+
+	// 실제 결제 금액 (정기권 사용 제외)
+	const total = payableItems
+		.filter((item) => item.paymentMethod !== "membership")
+		.reduce((sum, item) => sum + item.finalPrice, 0);
+
+	// topup 금액
+	const topupTotal = cart
+		.filter((item) => item.type === "topup")
+		.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+	const handleAddToCart = (item: CartItem): void => {
+		const existingItem = cart.find((c) => c.id === item.id);
+		if (existingItem) {
+			setCart(cart.map((c) => (c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c)));
+		} else {
+			// 새 항목 추가 시 기본값 설정
+			const newItem: CartItem = {
+				...item,
+				paymentMethod: item.paymentMethod,
+				eventId: undefined,
+				discountAmount: 0,
+				finalPrice: item.price,
+			};
+			setCart([...cart, newItem]);
+		}
+	};
+
+	const handleUpdateQuantity = (id: string, delta: number): void => {
+		const updated = cart
+			.map((item) => (item.id === id ? { ...item, quantity: item.quantity + delta } : item))
+			.filter((item) => item.quantity > 0);
+		setCart(updated);
+	};
+
+	const handleRemoveFromCart = (id: string): void => {
+		setCart(cart.filter((item) => item.id !== id));
+	};
+
+	const handleUpdatePaymentMethod = (id: string, method: ItemPaymentMethod): void => {
+		setCart(cart.map((item) => (item.id === id ? { ...item, paymentMethod: method } : item)));
+	};
+
+	const handleUpdateEvent = (id: string, eventId: string | undefined): void => {
+		setCart(
+			cart.map((item) => {
+				if (item.id !== id) return item;
+
+				const event =
+					eventId !== undefined && eventId !== ""
+						? discountEvents.find((e) => e.id === eventId)
+						: undefined;
+
+				const discountAmount = calculateDiscountAmount(event, item);
+				const finalPrice = item.price * item.quantity - discountAmount;
+
+				return { ...item, eventId, discountAmount, finalPrice };
+			}),
+		);
+	};
+
+	const calculateDiscountAmount = (
+		event: (typeof discountEvents)[number] | undefined,
+		item: CartItem,
+	): number => {
+		if (!event) return 0;
+
+		if (event.discountType === "percent") {
+			return Math.round(item.price * item.quantity * (event.discountValue / 100));
+		}
+
+		return event.discountValue;
+	};
 
 	const handleAddCustomer = (newCustomer: {
 		name: string;
@@ -166,6 +181,7 @@ export default function SalePage(): ReactElement {
 			(item) => item.type === "topup" && item.topupType === "membership",
 		);
 
+		// 디자이너 정보
 		const selectedStaff = salesStaff.find((s) => s.id === selectedDesignerId);
 		if (!selectedStaff) {
 			alert("담당 디자이너를 선택해주세요.");
@@ -183,6 +199,7 @@ export default function SalePage(): ReactElement {
 			.filter(([, amount]) => amount > 0)
 			.map(([method, amount]) => ({ method, amount }));
 
+		// SaleRecord 생성
 		const today = new Date().toISOString().split("T")[0] ?? "";
 		const isNewCustomer = selectedCustomer.visitCount === 0;
 		const grandTotal = total + topupTotal;
@@ -214,16 +231,19 @@ export default function SalePage(): ReactElement {
 			status: "completed" as const,
 		};
 
+		// 거래 저장
 		addSale(saleRecord);
 
 		// 고객 정보 업데이트
 		const updates: Partial<Customer> = {};
 
+		// 정액권 사용 차감 후 충전 반영
 		if (usedStoredValue > 0 || storedValueTopup > 0) {
 			updates.storedValue =
 				(selectedCustomer.storedValue ?? 0) - usedStoredValue + storedValueTopup;
 		}
 
+		// 정기권 사용 차감 후 충전 반영
 		if (selectedCustomer.membership) {
 			updates.membership = {
 				...selectedCustomer.membership,
@@ -238,6 +258,7 @@ export default function SalePage(): ReactElement {
 			};
 		}
 
+		// 방문 횟수, 마지막 방문일, 총 결제액(LTV) 업데이트
 		updates.visitCount = selectedCustomer.visitCount + 1;
 		updates.lastVisitDate = today;
 		updates.totalSpent = selectedCustomer.totalSpent + grandTotal;
@@ -245,25 +266,17 @@ export default function SalePage(): ReactElement {
 		updateCustomer(selectedCustomerId, updates);
 
 		alert("거래가 저장되었습니다.");
-		clearCart();
+
+		// 초기화
+		setCart([]);
 	};
 
 	const handleReset = (): void => {
 		setSelectedCustomerId(null);
-		clearCart();
+		setCart([]);
 	};
 
 	const canSave = selectedCustomerId !== null && cart.length > 0;
-
-	// CartTable에 전달할 원본 잔액 (사용량 차감 전)
-	const originalStoredValue =
-		selectedCustomer?.storedValue !== undefined && selectedCustomer.storedValue > 0
-			? selectedCustomer.storedValue
-			: 0;
-
-	const originalMembershipRemaining = selectedCustomer?.membership
-		? selectedCustomer.membership.total - selectedCustomer.membership.used
-		: 0;
 
 	return (
 		<div className="flex h-full flex-col bg-white">
@@ -340,19 +353,27 @@ export default function SalePage(): ReactElement {
 					productCategories={productCategories}
 					storedValueOptions={storedValueOptions}
 					membershipOptions={membershipOptions}
-					onAddToCart={addToCart}
+					onAddToCart={handleAddToCart}
 					onOpenModal={handleOpenModal}
 				/>
 
 				{/* 선택한 항목 */}
 				<CartTable
 					cart={cart}
-					displayedStoredValue={originalStoredValue}
-					displayedMembershipRemaining={originalMembershipRemaining}
-					onUpdateQuantity={updateQuantity}
-					onRemove={removeFromCart}
-					onUpdatePaymentMethod={updatePaymentMethod}
-					onUpdateEvent={updateEvent}
+					displayedStoredValue={
+						selectedCustomer?.storedValue !== undefined && selectedCustomer.storedValue > 0
+							? selectedCustomer.storedValue
+							: 0
+					}
+					displayedMembershipRemaining={
+						selectedCustomer?.membership
+							? selectedCustomer.membership.total - selectedCustomer.membership.used
+							: 0
+					}
+					onUpdateQuantity={handleUpdateQuantity}
+					onRemove={handleRemoveFromCart}
+					onUpdatePaymentMethod={handleUpdatePaymentMethod}
+					onUpdateEvent={handleUpdateEvent}
 				/>
 
 				{/* 결제 요약 */}

@@ -1,4 +1,4 @@
-import type { DragEvent, ReactElement } from "react";
+import type { ReactElement } from "react";
 import { getDurationSlots, getTimeSlotIndex, STATUS_CONFIG } from "./constants";
 import type { Reservation } from "./types";
 
@@ -6,47 +6,29 @@ interface ReservationBlockProps {
 	reservation: Reservation;
 	slotCount: number;
 	onClick: (reservation: Reservation) => void;
-	isDragging?: boolean;
-	onDragStart?: () => void;
 }
 
 export default function ReservationBlock({
 	reservation,
 	slotCount,
 	onClick,
-	isDragging = false,
-	onDragStart,
 }: ReservationBlockProps): ReactElement {
 	const startSlot = getTimeSlotIndex(reservation.startTime);
 	const slots = getDurationSlots(reservation.duration);
 	const statusStyle = STATUS_CONFIG[reservation.status];
 
+	// Percentage 기반 위치/너비 계산
 	const slotWidthPercent = 100 / slotCount;
 	const leftPercent = startSlot * slotWidthPercent;
 	const widthPercent = slots * slotWidthPercent;
 
-	const isDraggable = reservation.status !== "cancelled";
-
-	const handleDragStart = (e: DragEvent<HTMLDivElement>): void => {
-		if (!isDraggable) {
-			e.preventDefault();
-			return;
-		}
-		e.dataTransfer.setData("text/plain", reservation.id);
-		e.dataTransfer.effectAllowed = "move";
-		onDragStart?.();
-	};
-
 	return (
 		<div
-			draggable={isDraggable}
-			onDragStart={handleDragStart}
-			className={`absolute top-1 cursor-pointer overflow-hidden rounded px-1 py-0.5 sm:px-2 sm:py-1 ${statusStyle.bg} ${isDraggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+			className={`absolute top-1 cursor-pointer overflow-hidden rounded px-1 py-0.5 sm:px-2 sm:py-1 ${statusStyle.bg}`}
 			style={{
 				left: `calc(${String(leftPercent)}% + 2px)`,
 				width: `calc(${String(widthPercent)}% - 4px)`,
 				height: "calc(100% - 8px)",
-				pointerEvents: isDragging ? "none" : "auto",
 			}}
 			onClick={() => {
 				onClick(reservation);

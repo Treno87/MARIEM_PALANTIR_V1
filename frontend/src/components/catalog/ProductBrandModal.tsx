@@ -77,7 +77,7 @@ export function ProductBrandModal({
 					<button
 						onClick={handleSubmit}
 						disabled={!brandForm.name.trim()}
-						className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+						className="bg-primary-500 hover:bg-primary-600 rounded-xl px-4 py-2.5 font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 					>
 						{editingBrand ? "수정" : "추가"}
 					</button>

@@ -42,7 +42,6 @@ module Api
       params.require(:visit).permit(
         :customer_id,
         :visited_at,
-        :status,
         line_items: [ :item_type, :service_id, :product_id, :staff_id, :qty, :discount_rate, :discount_amount ],
         payments: [ :method, :amount ]
       )

@@ -164,11 +164,11 @@ RSpec.describe "Api::Visits", type: :request do
         expect(Visit.last.store_id).to eq(store.id)
       end
 
-      it "finalized 상태로 거래를 생성할 수 있다" do
-        params_with_finalized = valid_params.deep_dup
-        params_with_finalized[:visit][:status] = "finalized"
+      it "status 파라미터를 무시하고 기본값(finalized)으로 생성한다" do
+        params_with_draft = valid_params.deep_dup
+        params_with_draft[:visit][:status] = "draft"
 
-        post "/api/visits", params: params_with_finalized, headers: headers, as: :json
+        post "/api/visits", params: params_with_draft, headers: headers, as: :json
 
         expect(json_response[:data][:visit][:status]).to eq("finalized")
       end

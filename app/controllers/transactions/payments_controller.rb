@@ -45,7 +45,7 @@ module Transactions
     end
 
     def payment_params
-      params.require(:payment).permit(:method, :amount)
+      params.require(:payment).permit(:method, :amount, :prepaid_sale_id)
     end
 
     def process_special_payment(payment)
@@ -55,7 +55,7 @@ module Transactions
           customer: @visit.customer,
           amount: payment.amount,
           visit: @visit,
-          prepaid_sale_id: params.dig(:payment, :prepaid_sale_id)
+          prepaid_sale_id: payment_params[:prepaid_sale_id]
         )
       when "points"
         PointLedger.new(current_store).redeem(

@@ -45,8 +45,7 @@ module Transactions
     def line_item_params
       params.require(:sale_line_item).permit(
         :item_type, :service_id, :product_id, :staff_id, :qty,
-        :applied_pricing_rule_id, :discount_rate, :discount_amount,
-        :prepaid_used, :points_earned
+        :discount_rate, :discount_amount
       )
     end
   end

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class PointLedger
+  InsufficientPointsError = Class.new(StandardError)
+
   def initialize(store)
     @store = store
   end
@@ -25,16 +27,20 @@ class PointLedger
   end
 
   def redeem(customer:, points:, visit:, payment:)
-    raise "포인트 잔액이 부족합니다" if customer.point_balance < points
+    ActiveRecord::Base.transaction do
+      customer.lock!
+      current_balance = customer.point_transactions.sum(:points_delta)
+      raise InsufficientPointsError, "포인트 잔액이 부족합니다" if current_balance < points
 
-    PointTransaction.create!(
-      store: @store,
-      customer: customer,
-      txn_type: "redeem",
-      points_delta: -points,
-      visit: visit,
-      payment: payment
-    )
+      PointTransaction.create!(
+        store: @store,
+        customer: customer,
+        txn_type: "redeem",
+        points_delta: -points,
+        visit: visit,
+        payment: payment
+      )
+    end
   end
 
   def adjust(customer:, points:, memo:)

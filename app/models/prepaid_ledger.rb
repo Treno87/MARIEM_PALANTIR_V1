@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class PrepaidLedger
+  NoPrepaidSaleError = Class.new(StandardError)
+  InsufficientBalanceError = Class.new(StandardError)
+
   def initialize(store)
     @store = store
   end
@@ -18,24 +21,26 @@ class PrepaidLedger
   end
 
   def use(customer:, amount:, visit:, sale_line_item: nil, prepaid_sale_id: nil)
-    prepaid_sale = if prepaid_sale_id
-      customer.prepaid_sales.find(prepaid_sale_id)
-    else
-      find_available_prepaid_sale(customer, amount)
+    ActiveRecord::Base.transaction do
+      prepaid_sale = if prepaid_sale_id
+        customer.prepaid_sales.lock.find(prepaid_sale_id)
+      else
+        find_available_prepaid_sale(customer, amount)
+      end
+
+      raise NoPrepaidSaleError, "사용 가능한 정액권이 없습니다" unless prepaid_sale
+      raise InsufficientBalanceError, "정액권 잔액이 부족합니다" if prepaid_sale.remaining_balance < amount
+
+      PrepaidUsage.create!(
+        store: @store,
+        customer: customer,
+        prepaid_sale: prepaid_sale,
+        visit: visit,
+        amount_used: amount,
+        applied_sale_line_item: sale_line_item,
+        used_at: Time.current
+      )
     end
-
-    raise "사용 가능한 정액권이 없습니다" unless prepaid_sale
-    raise "정액권 잔액이 부족합니다" if prepaid_sale.remaining_balance < amount
-
-    PrepaidUsage.create!(
-      store: @store,
-      customer: customer,
-      prepaid_sale: prepaid_sale,
-      visit: visit,
-      amount_used: amount,
-      applied_sale_line_item: sale_line_item,
-      used_at: Time.current
-    )
   end
 
   def balance_for(customer)
@@ -64,6 +69,7 @@ class PrepaidLedger
 
   def find_available_prepaid_sale(customer, amount)
     customer.prepaid_sales
+            .lock
             .order(:sold_at)
             .find { |sale| sale.remaining_balance >= amount }
   end

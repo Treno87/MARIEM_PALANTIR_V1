@@ -25,6 +25,11 @@ module Api
           ).first
 
           @current_user = User.find(jwt_payload["sub"])
+
+          unless @current_user.jti == jwt_payload["jti"]
+            render json: { success: false, error: "만료된 토큰입니다" }, status: :unauthorized
+            return # rubocop:disable Style/RedundantReturn
+          end
         rescue JWT::DecodeError, ActiveRecord::RecordNotFound
           render json: { success: false, error: "유효하지 않은 토큰입니다" }, status: :unauthorized
         end

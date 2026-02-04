@@ -29,9 +29,9 @@ class User < ApplicationRecord
 
   # JWT payload에 추가 정보 포함
   def jwt_payload
-    {
+    super.merge(
       "store_id" => store_id,
       "role" => role
-    }
+    )
   end
 end

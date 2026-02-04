@@ -3,7 +3,7 @@
 class Product < ApplicationRecord
   include StoreScoped
 
-  belongs_to :vendor, optional: true
+  belongs_to :vendor
   has_many :sale_line_items, dependent: :restrict_with_error
   has_many :inventory_events, dependent: :destroy
   has_many :inventory_purchase_items, dependent: :destroy

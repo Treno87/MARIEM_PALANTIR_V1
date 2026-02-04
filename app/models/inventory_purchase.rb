@@ -3,7 +3,7 @@
 class InventoryPurchase < ApplicationRecord
   include StoreScoped
 
-  belongs_to :vendor, optional: true
+  belongs_to :vendor
   has_many :inventory_purchase_items, dependent: :destroy
 
   validates :purchased_at, presence: true

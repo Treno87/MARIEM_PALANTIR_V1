@@ -481,7 +481,7 @@ DEPENDENCIES
   devise (~> 4.9)
   devise-jwt (~> 0.12)
   factory_bot_rails (~> 6.4)
-  faker (~> 3.4)
+  faker (~> 3.6)
   image_processing (~> 1.2)
   importmap-rails
   jbuilder

@@ -33,7 +33,7 @@ gem "pundit", "~> 2.4"
 gem "rack-cors", "~> 2.0"
 
 # Pagination
-gem "pagy", "~> 9.0"
+gem "pagy", "~> 43.2"
 
 # Excel file handling
 gem "roo", "~> 2.10"

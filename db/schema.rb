@@ -10,12 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_25_145137) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_06_033041) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "customers", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "gender"
     t.text "memo"
     t.string "name"
     t.string "phone"
@@ -48,10 +49,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_25_145137) do
     t.bigint "inventory_purchase_id", null: false
     t.bigint "product_id", null: false
     t.integer "qty"
+    t.bigint "store_id", null: false
     t.integer "unit_cost"
     t.datetime "updated_at", null: false
     t.index ["inventory_purchase_id"], name: "index_inventory_purchase_items_on_inventory_purchase_id"
     t.index ["product_id"], name: "index_inventory_purchase_items_on_product_id"
+    t.index ["store_id"], name: "index_inventory_purchase_items_on_store_id"
   end
 
   create_table "inventory_purchases", force: :cascade do |t|
@@ -190,6 +193,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_25_145137) do
     t.datetime "created_at", null: false
     t.integer "discount_amount", default: 0
     t.decimal "discount_rate", precision: 5, scale: 2, default: "0.0"
+    t.string "event_name"
     t.string "item_type", null: false
     t.integer "list_unit_price", null: false
     t.integer "net_total", null: false
@@ -280,7 +284,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_25_145137) do
   create_table "visits", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "customer_id", null: false
+    t.string "external_hash"
     t.text "memo"
+    t.string "source", default: "manual"
     t.string "status"
     t.bigint "store_id", null: false
     t.integer "subtotal_amount"
@@ -290,6 +296,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_25_145137) do
     t.datetime "visited_at"
     t.datetime "voided_at"
     t.index ["customer_id"], name: "index_visits_on_customer_id"
+    t.index ["store_id", "external_hash"], name: "index_visits_on_store_id_and_external_hash", unique: true, where: "(external_hash IS NOT NULL)"
     t.index ["store_id"], name: "index_visits_on_store_id"
   end
 
@@ -300,6 +307,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_25_145137) do
   add_foreign_key "inventory_events", "visits"
   add_foreign_key "inventory_purchase_items", "inventory_purchases"
   add_foreign_key "inventory_purchase_items", "products"
+  add_foreign_key "inventory_purchase_items", "stores"
   add_foreign_key "inventory_purchases", "stores"
   add_foreign_key "inventory_purchases", "vendors"
   add_foreign_key "payments", "stores"

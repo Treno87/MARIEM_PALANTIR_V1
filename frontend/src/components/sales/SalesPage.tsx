@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { type ReactElement, useMemo, useState } from "react";
 import { useStaff } from "../../contexts/StaffContext";
+import { useStaffList } from "../../hooks/useStaffApi";
+import { useVisitsList } from "../../hooks/useVisitsApi";
+import { USE_API } from "../../lib/config";
+import { enrichSaleWithStaff, mapVisitToSaleRecord } from "../../utils/apiMappers";
+import { getStaffColor } from "../../utils/staffColors";
 import type { CustomerType, SaleRecord, SaleStatus } from "../sale/types";
 
-// Mock 거래 데이터
+// Fallback mock 데이터 (USE_API=false일 때 사용)
 const mockSales: SaleRecord[] = [
 	{
 		id: "sale-001",
@@ -61,88 +66,6 @@ const mockSales: SaleRecord[] = [
 		status: "completed",
 		createdAt: "2026-01-19T14:15:00",
 	},
-	{
-		id: "sale-003",
-		saleDate: "2026-01-18",
-		customer: {
-			id: "3",
-			name: "박지우",
-			phone: "010-3456-7890",
-			type: "substitute",
-		},
-		staff: { id: "1", name: "김정희", color: "#00c875" },
-		items: [
-			{
-				name: "남자커트",
-				quantity: 1,
-				unitPrice: 25000,
-				lineTotal: 25000,
-				type: "service",
-			},
-		],
-		subtotal: 25000,
-		discountAmount: 0,
-		total: 25000,
-		payments: [{ method: "정기권", amount: 25000 }],
-		status: "completed",
-		note: "정기권 3회 사용",
-		createdAt: "2026-01-18T11:00:00",
-	},
-	{
-		id: "sale-004",
-		saleDate: "2026-01-18",
-		customer: { id: "4", name: "최유나", phone: "010-4567-8901", type: "new" },
-		staff: { id: "3", name: "이하늘", color: "#a25ddc" },
-		items: [
-			{
-				name: "전체염색",
-				quantity: 1,
-				unitPrice: 80000,
-				lineTotal: 80000,
-				type: "service",
-			},
-			{
-				name: "모발클리닉",
-				quantity: 1,
-				unitPrice: 40000,
-				lineTotal: 40000,
-				type: "service",
-			},
-		],
-		subtotal: 120000,
-		discountAmount: 12000,
-		total: 108000,
-		payments: [{ method: "카드", amount: 108000 }],
-		status: "voided",
-		note: "고객 요청으로 취소",
-		createdAt: "2026-01-18T16:30:00",
-	},
-	{
-		id: "sale-005",
-		saleDate: "2026-01-17",
-		customer: {
-			id: "5",
-			name: "정수현",
-			phone: "010-5678-9012",
-			type: "returning",
-		},
-		staff: { id: "2", name: "박수민", color: "#fdab3d" },
-		items: [
-			{
-				name: "정액권 30만원",
-				quantity: 1,
-				unitPrice: 300000,
-				lineTotal: 300000,
-				type: "topup",
-			},
-		],
-		subtotal: 300000,
-		discountAmount: 0,
-		total: 300000,
-		payments: [{ method: "계좌이체", amount: 300000 }],
-		status: "completed",
-		createdAt: "2026-01-17T09:45:00",
-	},
 ];
 
 const statusConfig: Record<SaleStatus, { label: string; color: string; bgColor: string }> = {
@@ -170,9 +93,14 @@ const customerTypeConfig: Record<CustomerType, { label: string; color: string; b
 		},
 	};
 
-export default function SalesPage() {
+export default function SalesPage(): ReactElement {
 	const { salesStaff } = useStaff();
-	const [sales, setSales] = useState<SaleRecord[]>(mockSales);
+
+	// API 데이터 (USE_API=true일 때만 fetch)
+	const visitsQuery = useVisitsList(USE_API ? undefined : undefined);
+	const staffQuery = useStaffList();
+
+	const [localSales, setLocalSales] = useState<SaleRecord[]>(mockSales);
 	const [selectedSale, setSelectedSale] = useState<SaleRecord | null>(null);
 	const [isDetailOpen, setIsDetailOpen] = useState(false);
 
@@ -183,13 +111,46 @@ export default function SalesPage() {
 	const [statusFilter, setStatusFilter] = useState<SaleStatus | "">("");
 	const [customerTypeFilter, setCustomerTypeFilter] = useState<CustomerType | "">("");
 
+	// API 데이터 → SaleRecord 변환
+	const apiSales = useMemo((): SaleRecord[] => {
+		if (!USE_API || !visitsQuery.data) return [];
+		const staffMembers = staffQuery.data ?? [];
+		return visitsQuery.data.map((visit) => {
+			const record = mapVisitToSaleRecord(visit);
+			return enrichSaleWithStaff(record, staffMembers);
+		});
+	}, [visitsQuery.data, staffQuery.data]);
+
+	// 실제 사용할 sales 데이터
+	const sales = USE_API ? apiSales : localSales;
+	const isLoading = USE_API && visitsQuery.isLoading;
+	const isError = USE_API && visitsQuery.isError;
+
+	// 담당자 필터용 목록: API 모드면 API 직원, 아니면 Context 직원
+	const filterStaff = useMemo((): {
+		id: string;
+		name: string;
+		color: string;
+	}[] => {
+		if (USE_API && staffQuery.data !== undefined) {
+			return staffQuery.data
+				.filter((s) => s.active)
+				.map((s) => ({
+					id: String(s.id),
+					name: s.name,
+					color: getStaffColor(s.name),
+				}));
+		}
+		return salesStaff;
+	}, [staffQuery.data, salesStaff]);
+
 	// 필터링된 거래 목록
 	const filteredSales = sales.filter((sale) => {
-		if (startDate && sale.saleDate < startDate) return false;
-		if (endDate && sale.saleDate > endDate) return false;
-		if (staffFilter && sale.staff.id !== staffFilter) return false;
-		if (statusFilter && sale.status !== statusFilter) return false;
-		if (customerTypeFilter && sale.customer.type !== customerTypeFilter) return false;
+		if (startDate !== "" && sale.saleDate < startDate) return false;
+		if (endDate !== "" && sale.saleDate > endDate) return false;
+		if (staffFilter !== "" && sale.staff.id !== staffFilter) return false;
+		if (statusFilter !== "" && sale.status !== statusFilter) return false;
+		if (customerTypeFilter !== "" && sale.customer.type !== customerTypeFilter) return false;
 		return true;
 	});
 
@@ -198,19 +159,19 @@ export default function SalesPage() {
 	const totalAmount = completedSales.reduce((sum, s) => sum + s.total, 0);
 	const totalCount = completedSales.length;
 
-	const openDetail = (sale: SaleRecord) => {
+	const openDetail = (sale: SaleRecord): void => {
 		setSelectedSale(sale);
 		setIsDetailOpen(true);
 	};
 
-	const closeDetail = () => {
+	const closeDetail = (): void => {
 		setIsDetailOpen(false);
 		setSelectedSale(null);
 	};
 
-	const handleVoid = (saleId: string) => {
+	const handleVoid = (saleId: string): void => {
 		if (confirm("이 거래를 취소하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
-			setSales((prev) =>
+			setLocalSales((prev) =>
 				prev.map((sale) =>
 					sale.id === saleId ? { ...sale, status: "voided" as SaleStatus } : sale,
 				),
@@ -219,7 +180,7 @@ export default function SalesPage() {
 		}
 	};
 
-	const clearFilters = () => {
+	const clearFilters = (): void => {
 		setStartDate("");
 		setEndDate("");
 		setStaffFilter("");
@@ -228,9 +189,13 @@ export default function SalesPage() {
 	};
 
 	const hasActiveFilters =
-		startDate || endDate || staffFilter || statusFilter || customerTypeFilter;
+		startDate !== "" ||
+		endDate !== "" ||
+		staffFilter !== "" ||
+		statusFilter !== "" ||
+		customerTypeFilter !== "";
 
-	const formatDate = (dateStr: string) => {
+	const formatDate = (dateStr: string): string => {
 		const date = new Date(dateStr);
 		return date.toLocaleDateString("ko-KR", {
 			year: "numeric",
@@ -239,13 +204,45 @@ export default function SalesPage() {
 		});
 	};
 
-	const formatTime = (dateStr: string) => {
+	const formatTime = (dateStr: string): string => {
 		const date = new Date(dateStr);
 		return date.toLocaleTimeString("ko-KR", {
 			hour: "2-digit",
 			minute: "2-digit",
 		});
 	};
+
+	// Loading 상태
+	if (isLoading) {
+		return (
+			<div className="flex flex-1 items-center justify-center p-8">
+				<div className="text-center">
+					<div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-neutral-200 border-t-blue-500" />
+					<p className="text-neutral-500">거래 내역을 불러오는 중...</p>
+				</div>
+			</div>
+		);
+	}
+
+	// Error 상태
+	if (isError) {
+		return (
+			<div className="flex flex-1 items-center justify-center p-8">
+				<div className="text-center">
+					<span className="material-symbols-outlined mb-4 text-5xl text-red-300">error</span>
+					<p className="text-neutral-500">거래 내역을 불러오지 못했습니다</p>
+					<button
+						onClick={() => {
+							void visitsQuery.refetch();
+						}}
+						className="text-primary-500 mt-4 font-bold hover:underline"
+					>
+						다시 시도
+					</button>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="flex-1 overflow-y-auto p-8">
@@ -367,7 +364,7 @@ export default function SalesPage() {
 						>
 							전체
 						</button>
-						{salesStaff.map((staff) => (
+						{filterStaff.map((staff) => (
 							<button
 								key={staff.id}
 								onClick={() => {
@@ -515,7 +512,7 @@ export default function SalesPage() {
 			</div>
 
 			{/* Detail Modal */}
-			{isDetailOpen && selectedSale && (
+			{isDetailOpen && selectedSale !== null && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 					<div className="mx-4 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white">
 						{/* Header */}
@@ -653,7 +650,7 @@ export default function SalesPage() {
 							</div>
 
 							{/* Note */}
-							{selectedSale.note && (
+							{selectedSale.note !== undefined && selectedSale.note !== "" && (
 								<div>
 									<h3 className="mb-2 font-bold text-neutral-800">메모</h3>
 									<p className="rounded-xl bg-neutral-50 px-4 py-3 text-neutral-600">

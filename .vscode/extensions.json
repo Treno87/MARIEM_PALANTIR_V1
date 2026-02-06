@@ -27,7 +27,15 @@
 		"streetsidesoftware.code-spell-checker",
 		"formulahendry.auto-rename-tag",
 		"christian-kohler.path-intellisense",
-		"aaron-bond.better-comments"
+		"aaron-bond.better-comments",
+
+		// Database
+		"ckolkman.vscode-postgres",
+
+		// Additional LSP & DX
+		"redhat.vscode-yaml",
+		"mikestead.dotenv",
+		"usernamehw.errorlens"
 	],
 	"unwantedRecommendations": []
 }

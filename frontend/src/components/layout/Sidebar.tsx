@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface NavItem {
 	icon: string;
@@ -124,7 +125,10 @@ function CollapsibleMenu({ menu }: { menu: CollapsibleNavItem }) {
 	);
 }
 
-export default function Sidebar() {
+export default function Sidebar(): React.ReactElement {
+	const { signOut } = useAuth();
+	const navigate = useNavigate();
+
 	return (
 		<aside className="no-scrollbar flex h-full w-[280px] shrink-0 flex-col overflow-y-auto border-r border-neutral-200 bg-white">
 			{/* Logo */}
@@ -172,7 +176,14 @@ export default function Sidebar() {
 					{accountItems.map((item) => (
 						<NavLinkItem key={item.path} item={item} />
 					))}
-					<button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-red-500 transition-all hover:bg-red-50">
+					<button
+						onClick={() => {
+							void signOut().then(() => {
+								void navigate("/");
+							});
+						}}
+						className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-red-500 transition-all hover:bg-red-50"
+					>
 						<span className="material-symbols-outlined">logout</span>
 						<span className="text-sm font-bold">로그아웃</span>
 					</button>

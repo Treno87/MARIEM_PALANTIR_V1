@@ -4,6 +4,9 @@ export interface Customer {
 	name: string;
 	phone: string;
 	memo: string | null;
+	visit_count?: number;
+	total_spent?: number;
+	last_visit_at?: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -83,6 +86,10 @@ export interface Visit {
 		name: string;
 		phone: string;
 	};
+	staff?: {
+		id: number;
+		name: string;
+	} | null;
 	line_items?: LineItem[];
 	payments?: Payment[];
 	line_items_count?: number;

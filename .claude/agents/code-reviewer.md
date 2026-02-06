@@ -1,4 +1,5 @@
 ---
+name: code-reviewer
 description: 시니어 개발자 - 코드 품질, 아키텍처, 성능 검토
 ---
 

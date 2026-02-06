@@ -1,6 +1,6 @@
 # TASKS: Mariem Palantir MVP 구현 태스크
 
-> **최종 업데이트**: 2026-01-21
+> **최종 업데이트**: 2026-02-06
 
 ## 진행 상태 요약
 
@@ -9,8 +9,9 @@
 - [x] Phase 3: Backend API 구현 (25/25) ✅
 - [x] Phase 4: Frontend 구현 (32/30) ✅ (범위 확장)
 - [ ] Phase 5: 테스트 및 배포 (8/12) 🟡
+- [x] Phase 6: 데이터 마이그레이션 + API 연동 ✅ (신규)
 
-**총 진행률**: 93/96 (97%)
+**총 진행률**: 93/96 + Phase 6 완료 (97%+)
 
 ---
 
@@ -192,6 +193,38 @@
 - [ ] 환경 변수 정리 (.env.example)
 - [ ] Docker 이미지 빌드
 - [ ] 배포 설정
+
+---
+
+## Phase 6: 데이터 마이그레이션 + API 연동 ✅ (2026-02-05~06)
+
+### 6.1 HandSOS 매출 데이터 마이그레이션 ✅
+- [x] `HandsosImportService` 구현 (Excel → DB 파싱)
+- [x] 4,043 visits, 137 customers, 11 staff_members 마이그레이션 완료
+- [x] 자동 customer/staff/service/product 생성
+
+### 6.2 점진적 Mock → API 연동 ✅
+- [x] `SalesPage.tsx` - `useVisitsList()` + `mapVisitToSaleRecord()` 적용
+- [x] `SalesListPage.tsx` - 서버사이드 date_from/date_to 필터링
+- [x] `CustomersPage.tsx` - `useCustomersList()` + `mapApiCustomerToCustomer()` 적용
+- [x] `StaffContext.tsx` - `useStaffList()` + `mapApiStaffToStaff()` 적용
+- [x] `apiMappers.ts` - 4개 매퍼 함수 구현 (mapVisitToSaleRecord, mapApiCustomerToCustomer, mapApiStaffToStaff, enrichSaleWithStaff)
+- [x] `staffColors.ts` - 이름→색상 해시 유틸 구현
+- [x] USE_API 플래그 기반 하이브리드 패턴 (mock fallback 유지)
+
+### 6.3 UI 개선 ✅
+- [x] `CustomersPage.tsx` - sticky header (고정 헤더 + 스크롤 테이블)
+- [x] `SalesListPage.tsx` - sticky header (동일 패턴 적용)
+
+### 6.4 코드 리뷰 P0 수정 ✅ (2026-02-06)
+- [x] P0-1: `visits_controller.rb` - 서버사이드 date_from/date_to 범위 필터링 (DATE() 함수 제거)
+- [x] P0-2: `SalesListPage.tsx` - 클라이언트 필터링 → 서버사이드 필터링 전환
+- [x] P0-3: `customers_controller.rb` - voided visits를 집계에서 제외 (voided_at IS NULL)
+
+### 6.5 코드 리뷰 P1 수정 ✅ (2026-02-06)
+- [x] P1-4: staff 보강 로직 3중 중복 → `enrichSaleWithStaff()` 단일 함수로 통합
+- [x] P1-5: hasToken 패턴 3곳 → `useAuth().isAuthenticated`로 통합
+- [x] P1-6: CustomersPage API mutation과 Context 동시 업데이트 → API 모드에서 Context 업데이트 제거
 
 ---
 

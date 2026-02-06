@@ -1,4 +1,5 @@
 ---
+name: react-expert
 description: React 18 전문가 - 컴포넌트 분리, 커스텀 훅, React Query
 ---
 

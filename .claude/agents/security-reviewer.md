@@ -1,4 +1,5 @@
 ---
+name: security-reviewer
 description: 보안 전문가 - OWASP Top 10 및 보안 취약점 점검
 ---
 

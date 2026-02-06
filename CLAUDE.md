@@ -13,7 +13,7 @@
 4. **커밋 메시지 명확히**: 컨벤션 준수 (feat/fix/refactor/chore)
 5. **SPEC.md 참조**: 작업 시작 시 `@SPEC.md` 읽고 컨텍스트 확인
 6. **tenant_id 포함**: 모든 쿼리에 멀티테넌시 조건 적용
-7. **작업 완료 후 검증**: `/verify` 또는 `/tcr` 실행
+7. **작업 완료 후 검증**: `/agent verify` 또는 `/agent tcr` 실행
 
 ---
 
@@ -41,17 +41,16 @@ npm test
 - 과도한 구현 금지 - 테스트가 요구하는 것만 구현
 
 ### 4단계: REFACTOR - 코드 개선
-- `/beck` 실행하여 Kent Beck 4원칙으로 리뷰
-- `/refactor` 또는 `/tidy`로 코드 정리
+- `/agent beck` 실행하여 Kent Beck 4원칙으로 리뷰
+- `/agent tidy` 또는 `/agent refactor`로 코드 정리
 - 테스트가 계속 통과하는지 확인
+
+> **Kent Beck 4원칙**: ① 테스트 통과 ② 의도 명확 ③ 중복 제거 ④ 최소 요소
 
 ### 5단계: 검증 및 커밋
 ```bash
-# 테스트 && 커밋 || 되돌리기
-/tcr
-
-# 또는 테스트만 실행 (실패해도 되돌리지 않음)
-/verify
+/agent tcr      # 테스트 && 커밋 || 되돌리기
+/agent verify   # 테스트만 실행 (실패해도 되돌리지 않음)
 ```
 
 ### 예외 상황
@@ -111,19 +110,21 @@ npm test
 ## Tech Stack (기술 스택)
 
 ### Backend
-- **Ruby 3.3+** / **Rails 8.0+** (API 모드)
+- **Ruby 3.3.6** / **Rails 8.1.2** (API 모드)
 - **PostgreSQL 16+**
-- **Devise + JWT** (인증)
-- **Pundit** (권한)
-- **RSpec** (테스트)
+- **Devise + JWT** (인증, devise-jwt 0.12)
+- **Pundit 2.4** (권한)
+- **RSpec Rails 7.0** (테스트)
 - **acts_as_tenant** (멀티테넌시)
+- **Pagy 9.0** (페이지네이션)
 
 ### Frontend
-- **Vite 5.0+** / **React 18.2+** / **TypeScript 5.3+**
-- **Tailwind CSS 3.4+** / **shadcn/ui**
-- **React Query 5.0+** (서버 상태)
-- **React Hook Form + Zod** (폼)
-- **Recharts** (차트)
+- **Vite 7.2+** / **React 19.2+** / **TypeScript 5.9+**
+- **Tailwind CSS 4.1+** / **shadcn/ui**
+- **TanStack React Query 5.90+** (서버 상태)
+- **React Router 7.12+** (라우팅)
+- **Axios 1.13+** (HTTP 클라이언트)
+- **Vitest 4.0+** (프론트엔드 테스트)
 
 ---
 
@@ -271,13 +272,13 @@ mariem_palantir_v1/
 
 ## Slash Commands
 
-| 명령어 | 설명 |
-|--------|------|
-| `/beck` | Kent Beck의 4원칙으로 코드 리뷰 (제안만) |
-| `/refactor` | Kent Beck의 4원칙으로 즉시 리팩토링 실행 |
-| `/tidy` | 코드 정리 후 즉시 커밋 (기능 변경 없음) |
-| `/tcr` | Test && Commit \|\| Revert 실행 |
-| `/verify` | 테스트 실행 (실패해도 revert 안함) |
+```bash
+/agent {command} {target}
+```
+
+예: `/agent beck app/models/sale.rb`, `/agent verify`, `/agent tidy`
+
+사용 가능한 커맨드: `beck`, `refactor`, `tidy`, `tcr`, `verify`, `api-gen`, `test-gen`, `migrate`, `component`, `connect-api`
 
 ---
 

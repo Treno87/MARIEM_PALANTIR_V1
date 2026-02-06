@@ -5,8 +5,18 @@ module Api
     before_action :set_visit, only: [ :show, :void ]
 
     def index
-      visits = current_store.visits.includes(:customer, :sale_line_items, :payments)
-      visits = visits.where("DATE(visited_at) = ?", params[:date]) if params[:date].present?
+      visits = current_store.visits.includes(:customer, :payments, sale_line_items: :staff)
+
+      # 날짜 범위 필터 (date_from/date_to 우선, 단일 date도 지원)
+      if params[:date_from].present? && params[:date_to].present?
+        from = Date.parse(params[:date_from]).beginning_of_day
+        to = Date.parse(params[:date_to]).end_of_day
+        visits = visits.where(visited_at: from..to)
+      elsif params[:date].present?
+        date = Date.parse(params[:date])
+        visits = visits.where(visited_at: date.beginning_of_day..date.end_of_day)
+      end
+
       visits = visits.where(status: params[:status]) if params[:status].present?
       visits = visits.order(visited_at: :desc)
 
@@ -48,6 +58,8 @@ module Api
     end
 
     def visit_list_json(visit)
+      primary_staff = visit.sale_line_items.find { |li| li.staff_id.present? }&.staff
+
       {
         id: visit.id,
         visited_at: visit.visited_at,
@@ -61,8 +73,9 @@ module Api
           name: visit.customer.name,
           phone: visit.customer.phone
         },
-        line_items_count: visit.sale_line_items.size,
-        payments_count: visit.payments.size,
+        staff: primary_staff ? { id: primary_staff.id, name: primary_staff.name } : nil,
+        line_items: visit.sale_line_items.map { |item| line_item_json(item) },
+        payments: visit.payments.map { |payment| payment_json(payment) },
         created_at: visit.created_at,
         updated_at: visit.updated_at
       }

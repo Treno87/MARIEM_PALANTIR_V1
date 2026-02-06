@@ -32,9 +32,11 @@ module Api
           end
         rescue JWT::DecodeError, ActiveRecord::RecordNotFound
           render json: { success: false, error: "유효하지 않은 토큰입니다" }, status: :unauthorized
+          return # rubocop:disable Style/RedundantReturn
         end
       else
         render json: { success: false, error: "인증이 필요합니다" }, status: :unauthorized
+        return # rubocop:disable Style/RedundantReturn
       end
     end
 

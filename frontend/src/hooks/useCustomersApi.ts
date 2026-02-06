@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { customersApi } from "../api/endpoints";
+import type { Customer } from "../api/types";
 
 export const customerKeys = {
 	all: ["customers"] as const,
@@ -7,10 +8,11 @@ export const customerKeys = {
 	detail: (id: number) => [...customerKeys.all, "detail", id] as const,
 };
 
-export function useCustomersList(query?: string) {
-	return useQuery({
+export function useCustomersList(query?: string, options?: { enabled?: boolean }) {
+	return useQuery<Customer[]>({
 		queryKey: customerKeys.list(query),
 		queryFn: () => customersApi.list(query),
+		enabled: options?.enabled ?? true,
 	});
 }
 

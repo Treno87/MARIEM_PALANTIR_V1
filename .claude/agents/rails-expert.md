@@ -1,4 +1,5 @@
 ---
+name: rails-expert
 description: Rails 8 전문가 - 서비스 객체, 멀티테넌시, 성능 최적화
 ---
 

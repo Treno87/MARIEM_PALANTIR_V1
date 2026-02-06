@@ -30,6 +30,11 @@
 ├── principles/             # 개발 원칙
 │   ├── tdd.md              # TDD 가이드라인
 │   └── clean-code.md       # Clean Code 원칙
+├── skills/                 # 프로젝트 도메인 스킬
+│   ├── mariem-architecture.md  # 아키텍처, 멀티테넌시, 폴더 구조
+│   ├── mariem-testing.md       # RSpec + Vitest 테스트 패턴
+│   ├── mariem-models.md        # 26개 모델, 서비스 객체, 관계
+│   └── mariem-frontend.md      # React 19, 컴포넌트, 훅 패턴
 └── agents/                 # AI 에이전트 페르소나
     ├── qa-engineer.md      # QA 엔지니어
     ├── security-reviewer.md # 보안 리뷰어
@@ -42,25 +47,29 @@
 
 ## Commands Usage
 
-### 코드 품질 명령어
+```bash
+/agent {command} {target}
+```
 
-| 명령어 | 설명 |
+### TDD 사이클에서 사용
+
+| 단계 | 커맨드 | 설명 |
+|------|--------|------|
+| REFACTOR | `/agent beck {file}` | Kent Beck 4원칙으로 리뷰 |
+| REFACTOR | `/agent refactor {file}` | 즉시 리팩토링 실행 |
+| REFACTOR | `/agent tidy` | 코드 정리 후 커밋 |
+| 검증 | `/agent tcr` | Test && Commit \|\| Revert |
+| 검증 | `/agent verify` | 테스트 실행 (revert 안함) |
+
+### 코드 생성
+
+| 커맨드 | 용도 |
 |--------|------|
-| `/beck` | Kent Beck의 4원칙으로 코드 리뷰 (제안만) |
-| `/refactor` | Kent Beck의 4원칙으로 즉시 리팩토링 실행 |
-| `/tidy` | 코드 정리 후 즉시 커밋 (기능 변경 없음) |
-| `/tcr` | Test && Commit \|\| Revert 실행 |
-| `/verify` | 테스트 실행 (실패해도 revert 안함) |
-
-### 코드 생성 명령어
-
-| 명령어 | 설명 | 예시 |
-|--------|------|------|
-| `/api-gen` | Rails API 엔드포인트 자동 생성 | `/api-gen sales` |
-| `/test-gen` | RSpec/Jest 테스트 자동 생성 | `/test-gen app/models/sale.rb` |
-| `/migrate` | 안전한 DB 마이그레이션 생성 | `/migrate customers에 email 추가` |
-| `/component` | React 컴포넌트 생성 | `/component CustomerForm` |
-| `/connect-api` | Mock 데이터를 실제 API로 연동 | `/connect-api SalePage` |
+| `/agent api-gen {resource}` | Rails API 엔드포인트 |
+| `/agent test-gen {file}` | RSpec/Jest 테스트 |
+| `/agent migrate {설명}` | DB 마이그레이션 |
+| `/agent component {name}` | React 컴포넌트 |
+| `/agent connect-api {page}` | Mock → API 연동 |
 
 ## Agents Usage
 

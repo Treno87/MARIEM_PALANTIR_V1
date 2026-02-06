@@ -7,7 +7,7 @@
 
 ## Implementation Notes (구현 현황)
 
-> **최종 업데이트**: 2026-01-21
+> **최종 업데이트**: 2026-02-06
 >
 > 실제 구현 과정에서 일부 네이밍과 구조가 변경되었습니다.
 > 상세 진행 상황은 `docs/TASKS.md` 참조.
@@ -29,12 +29,26 @@
 | 예약 관리 | Out of Scope | ✅ 구현됨 (ReservationPage) |
 | 정액권 시스템 | 소진만 | 🟡 부분 구현 (PrepaidPlan, PrepaidUsage) |
 | 감사 로그 | In Scope | ❌ 미구현 |
+| 데이터 마이그레이션 | Phase 6 추가 | ✅ HandSOS Excel → DB (4,043건) |
+| Mock → API 연동 | Phase 6 추가 | ✅ SalesPage, SalesListPage, CustomersPage, StaffContext |
 
 ### 프로젝트 진행률
 
-- **총 진행률**: 97% (93/96 태스크)
+- **총 진행률**: 97% (93/96 태스크) + Phase 6 완료
 - **Phase 1-4**: 완료 ✅
 - **Phase 5**: 테스트/배포 진행 중 🟡
+- **Phase 6**: 데이터 마이그레이션 + API 연동 ✅ (2026-02-05~06)
+
+### API 연동 현황 (2026-02-06)
+
+| 페이지 | 읽기 | 쓰기 | 비고 |
+|--------|------|------|------|
+| SalesPage (`/sales`) | ✅ API | - | `useVisitsList()` + `mapVisitToSaleRecord()` |
+| SalesListPage (`/sales`) | ✅ API | - | 서버사이드 date_from/date_to 필터링 |
+| CustomersPage (`/customers`) | ✅ API | ✅ API | `useCreateCustomer()`, `useUpdateCustomer()` |
+| StaffContext (전역) | ✅ API | - | `useStaffList()` + `mapApiStaffToStaff()` |
+| SalePage POS (`/sale`) | ❌ Mock | ❌ Mock | 4개 Context 의존, 다음 단계 |
+| ReportsPage (`/reports`) | ❌ Mock | - | 다음 단계 |
 
 ## High-level Vision
 

@@ -1,3 +1,6 @@
+# MCP (Model Context Protocol) - contains local DB URLs
+.mcp.json
+
 # Ruby / Rails
 *.gem
 *.rbc

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 // Counter hook for animated numbers
 function useCountUp(
@@ -248,9 +250,122 @@ function DashboardPreview(): React.ReactElement {
 	);
 }
 
+// Login Modal
+function LoginModal({
+	isOpen,
+	onClose,
+}: {
+	isOpen: boolean;
+	onClose: () => void;
+}): React.ReactElement | null {
+	const { signIn } = useAuth();
+	const navigate = useNavigate();
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [error, setError] = useState("");
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	const handleSubmit = (e: React.FormEvent): void => {
+		e.preventDefault();
+		setError("");
+		setIsSubmitting(true);
+
+		void signIn(email, password).then(
+			() => {
+				void navigate("/sale");
+			},
+			() => {
+				setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+				setIsSubmitting(false);
+			},
+		);
+	};
+
+	if (!isOpen) return null;
+
+	return (
+		<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+			<div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+				<div className="mb-6 flex items-center justify-between">
+					<h2 className="font-display text-2xl font-bold text-neutral-900">로그인</h2>
+					<button
+						onClick={onClose}
+						className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
+					>
+						<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M6 18L18 6M6 6l12 12"
+							/>
+						</svg>
+					</button>
+				</div>
+
+				<form onSubmit={handleSubmit} className="space-y-4">
+					{error !== "" && (
+						<div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+					)}
+
+					<div>
+						<label
+							htmlFor="login-email"
+							className="mb-1 block text-sm font-medium text-neutral-700"
+						>
+							이메일
+						</label>
+						<input
+							id="login-email"
+							type="email"
+							value={email}
+							onChange={(e) => {
+								setEmail(e.target.value);
+							}}
+							required
+							autoFocus
+							className="focus:border-primary-500 focus:ring-primary-500/20 w-full rounded-lg border border-neutral-300 px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-colors focus:ring-2 focus:outline-none"
+							placeholder="admin@mariem.com"
+						/>
+					</div>
+
+					<div>
+						<label
+							htmlFor="login-password"
+							className="mb-1 block text-sm font-medium text-neutral-700"
+						>
+							비밀번호
+						</label>
+						<input
+							id="login-password"
+							type="password"
+							value={password}
+							onChange={(e) => {
+								setPassword(e.target.value);
+							}}
+							required
+							className="focus:border-primary-500 focus:ring-primary-500/20 w-full rounded-lg border border-neutral-300 px-4 py-3 text-neutral-900 placeholder-neutral-400 transition-colors focus:ring-2 focus:outline-none"
+							placeholder="비밀번호"
+						/>
+					</div>
+
+					<button
+						type="submit"
+						disabled={isSubmitting}
+						className="bg-primary-600 hover:bg-primary-700 disabled:bg-primary-300 w-full rounded-lg px-4 py-3 font-semibold text-white transition-colors"
+					>
+						{isSubmitting ? "로그인 중..." : "로그인"}
+					</button>
+				</form>
+			</div>
+		</div>
+	);
+}
+
 // Main Landing Page
 export default function LandingPage(): React.ReactElement {
 	const [isScrolled, setIsScrolled] = useState(false);
+	const [showLogin, setShowLogin] = useState(false);
 
 	useEffect(() => {
 		const handleScroll = (): void => {
@@ -310,10 +425,20 @@ export default function LandingPage(): React.ReactElement {
 						</a>
 					</div>
 					<div className="flex items-center gap-3">
-						<button className="font-medium text-neutral-600 transition-colors hover:text-neutral-900">
+						<button
+							onClick={() => {
+								setShowLogin(true);
+							}}
+							className="font-medium text-neutral-600 transition-colors hover:text-neutral-900"
+						>
 							로그인
 						</button>
-						<button className="bg-primary-600 hover:bg-primary-700 rounded-lg px-5 py-2.5 font-medium text-white transition-colors">
+						<button
+							onClick={() => {
+								setShowLogin(true);
+							}}
+							className="bg-primary-600 hover:bg-primary-700 rounded-lg px-5 py-2.5 font-medium text-white transition-colors"
+						>
 							무료 시작
 						</button>
 					</div>
@@ -762,6 +887,13 @@ export default function LandingPage(): React.ReactElement {
 					</div>
 				</div>
 			</footer>
+
+			<LoginModal
+				isOpen={showLogin}
+				onClose={() => {
+					setShowLogin(false);
+				}}
+			/>
 		</div>
 	);
 }

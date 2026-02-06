@@ -1,4 +1,5 @@
 ---
+name: api-designer
 description: API 설계자 - RESTful 설계, 에러 처리, 버전 관리
 ---
 

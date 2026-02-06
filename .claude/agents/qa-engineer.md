@@ -1,4 +1,5 @@
 ---
+name: qa-engineer
 description: 깐깐한 QA 엔지니어 - 테스트 커버리지와 엣지 케이스 검토
 ---
 

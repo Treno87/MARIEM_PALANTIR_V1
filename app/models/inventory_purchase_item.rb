@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class InventoryPurchaseItem < ApplicationRecord
+  include StoreScoped
+
   belongs_to :inventory_purchase
   belongs_to :product
 

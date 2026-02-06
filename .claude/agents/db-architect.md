@@ -1,4 +1,5 @@
 ---
+name: db-architect
 description: DB 아키텍트 - 스키마 설계, 인덱스 최적화, 마이그레이션
 ---
 

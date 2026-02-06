@@ -1,6 +1,52 @@
 {
   "permissions": {
-    "allow": [],
-    "deny": []
+    "allow": [
+      "Bash(xargs:*)",
+      "Bash(grep:*)",
+      "Bash(bin/rails generate:*)",
+      "Bash(bin/rails db:migrate:*)",
+      "Bash(RAILS_ENV=test bin/rails db:migrate:*)",
+      "Bash(bundle exec rspec:*)",
+      "Bash(bundle exec rspec *)",
+      "Bash(bundle exec rubocop:*)",
+      "Bash(bundle install:*)",
+      "Bash(cd frontend && npm run:*)",
+      "Bash(cd frontend && npx vitest:*)",
+      "Bash(cd frontend && npm test:*)",
+      "Bash(cd frontend && npm install:*)",
+      "Bash(bin/rails db:create:*)",
+      "Bash(bin/rails db:seed:*)",
+      "Bash(bin/rails db:test:prepare:*)",
+      "Bash(bin/rails routes:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git stash:*)",
+      "Bash(python3:*)",
+      "Bash(npx eslint:*)",
+      "Bash(python:*)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(rm -rf:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/quality-guard.sh"
+          }
+        ]
+      }
+    ]
   }
 }

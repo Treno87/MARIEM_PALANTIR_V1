@@ -193,7 +193,12 @@ export const productsApi = {
 
 // 거래 API
 export const visitsApi = {
-	list: async (params?: { date?: string; status?: string }) => {
+	list: async (params?: {
+		date?: string;
+		date_from?: string;
+		date_to?: string;
+		status?: string;
+	}) => {
 		const response = await apiClient.get<ApiResponse<{ visits: Visit[] }>>("/visits", { params });
 		return response.data.data.visits;
 	},

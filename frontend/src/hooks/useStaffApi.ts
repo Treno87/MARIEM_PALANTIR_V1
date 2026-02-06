@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { staffMembersApi } from "../api/endpoints";
+import type { StaffMember } from "../api/types";
 
 export const staffKeys = {
 	all: ["staff"] as const,
@@ -7,10 +8,11 @@ export const staffKeys = {
 	detail: (id: number) => [...staffKeys.all, "detail", id] as const,
 };
 
-export function useStaffList() {
-	return useQuery({
+export function useStaffList(options?: { enabled?: boolean }) {
+	return useQuery<StaffMember[]>({
 		queryKey: staffKeys.list(),
 		queryFn: staffMembersApi.list,
+		enabled: options?.enabled ?? true,
 	});
 }
 
